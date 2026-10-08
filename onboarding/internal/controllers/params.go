@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/Vanady39/cluer/platform/errs"
+	"github.com/ksendel-coder/onboarding_croquant/platform/errs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

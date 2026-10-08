@@ -8,19 +8,17 @@ import (
 )
 
 type App struct {
-	Id             *uuid.UUID `json:"id" format:"uuid"`
-	Name           *string    `json:"name" example:"Demo classifieds"`
-	PublicKey      *string    `json:"public_key" example:"pk_demo_7f3a91c4b2e85d60"`
-	AllowedOrigins []*string  `json:"allowed_origins" example:"http://localhost:3000"`
-	CreatedAt      *time.Time `json:"created_at" format:"date-time"`
+	Id             uuid.UUID  `json:"id" format:"uuid"`
+	Name           string     `json:"name" example:"Demo classifieds"`
+	PublicKey      string     `json:"public_key" example:"pk_demo_7f3a91c4b2e85d60"`
+	AllowedOrigins []string   `json:"allowed_origins" example:"http://localhost:3000"`
+	CreatedAt      time.Time  `json:"created_at" format:"date-time"`
 	ArchivedAt     *time.Time `json:"archived_at,omitempty" format:"date-time"`
 }
 
-// Health is the only response here with no domain counterpart: liveness is a
-// property of the process, not of the business.
 type Health struct {
-	Status *string `json:"status" example:"ok"`
-	DB     *string `json:"db" example:"ok"`
+	Status string `json:"status" example:"ok"`
+	DB     string `json:"db" example:"ok"`
 }
 
 func NewApp(a *domains.App) *App {

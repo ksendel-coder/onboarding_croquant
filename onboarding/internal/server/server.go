@@ -1,11 +1,11 @@
 package server
 
 import (
-	"github.com/Vanady39/cluer/onboarding/internal/controllers"
-	"github.com/Vanady39/cluer/platform/config"
-	"github.com/Vanady39/cluer/platform/middlewares"
-	"github.com/Vanady39/cluer/platform/serve"
 	"github.com/gin-gonic/gin"
+	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/controllers"
+	"github.com/ksendel-coder/onboarding_croquant/platform/config"
+	"github.com/ksendel-coder/onboarding_croquant/platform/middlewares"
+	"github.com/ksendel-coder/onboarding_croquant/platform/serve"
 	"github.com/rs/zerolog"
 )
 
@@ -24,8 +24,6 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 		middlewares.RuntimeCORS(),
 		middlewares.ErrorHandler(createStruct.Logger),
 	)
-
-	AddDocsForDebugVersion(router)
 
 	v1 := router.Group("/v1")
 	{
