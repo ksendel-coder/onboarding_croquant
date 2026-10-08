@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: cluer
+      POSTGRES_PASSWORD: ${CLUER_POSTGRES_PASSWORD:?set CLUER_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: cluer
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cluer -d cluer"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  migrate:
+    build:
+      context: .
+      args:
+        SERVICE_PATH: ./cmd/migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./deploy/cluer.yml:/run/secrets/cluer.yml:ro
+    environment:
+      CLUER_POSTGRES_PASSWORD: ${CLUER_POSTGRES_PASSWORD:?set CLUER_POSTGRES_PASSWORD in .env}
+    restart: "no"
+
+  onboarding:
+    build:
+      context: .
+      args:
+        SERVICE_PATH: ./onboarding/cmd
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./deploy/cluer.yml:/run/secrets/cluer.yml:ro
+    environment:
+      CLUER_POSTGRES_PASSWORD: ${CLUER_POSTGRES_PASSWORD:?set CLUER_POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/v1/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
