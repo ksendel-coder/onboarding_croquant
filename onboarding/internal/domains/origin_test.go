@@ -16,7 +16,7 @@ func TestNormalizeOrigin(t *testing.T) {
 		{"пробелы по краям", "  http://localhost:5173  ", "http://localhost:5173"},
 		{"верхний регистр хоста", "HTTP://LocalHost:5173", "http://localhost:5173"},
 		{"ip с портом", "http://72.56.92.137:5173", "http://72.56.92.137:5173"},
-		{"https без порта", "https://cluer.example.com", "https://cluer.example.com"},
+		{"https без порта", "https://onboarding.example.com", "https://onboarding.example.com"},
 		{"путь не является частью origin", "http://localhost:5173/admin", ""},
 		{"query не является частью origin", "http://localhost:5173?a=1", ""},
 		{"без схемы", "localhost:5173", ""},
@@ -51,12 +51,12 @@ func TestValidateOrigins(t *testing.T) {
 		got, err := ValidateOrigins([]string{
 			"http://localhost:5173/",
 			"HTTP://localhost:5173",
-			"https://cluer.example.com",
+			"https://onboarding.example.com",
 		})
 		if err != nil {
 			t.Fatalf("неожиданная ошибка: %v", err)
 		}
-		want := []string{"http://localhost:5173", "https://cluer.example.com"}
+		want := []string{"http://localhost:5173", "https://onboarding.example.com"}
 		if len(got) != len(want) {
 			t.Fatalf("получено %v, ожидалось %v", got, want)
 		}
@@ -87,7 +87,7 @@ func TestValidateOrigins(t *testing.T) {
 }
 
 func TestOriginAllowed(t *testing.T) {
-	list := []string{"http://localhost:5173", "https://cluer.example.com"}
+	list := []string{"http://localhost:5173", "https://onboarding.example.com"}
 
 	cases := []struct {
 		name    string
@@ -96,7 +96,7 @@ func TestOriginAllowed(t *testing.T) {
 		want    bool
 	}{
 		{"точное совпадение", list, "http://localhost:5173", true},
-		{"второй в списке", list, "https://cluer.example.com", true},
+		{"второй в списке", list, "https://onboarding.example.com", true},
 		{"чужой порт", list, "http://localhost:3000", false},
 		{"чужая схема", list, "https://localhost:5173", false},
 		{"чужой хост", list, "http://evil.example.com", false},
