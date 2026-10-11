@@ -6,7 +6,7 @@ function HeaderComponent() {
   return (
     <header className={styles.header}>
       <div className={styles.header__brand}>
-        <img src={logo} alt="Логотип" />
+        <img src={logo} alt="Логотип" className={styles.header__brand__logo}/>
         <h2 className={styles.header__brand__title}>Onboarding <span className={styles.header__brand__title__span}>Studio</span></h2>
       </div>
       <div className={styles.header__profile}>ИТ</div>
