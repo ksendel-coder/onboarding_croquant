@@ -44,13 +44,13 @@ FROM alpine:3.22
 # wget is used by the compose healthcheck; ca-certificates keeps outbound TLS
 # working if the service ever has to call anything.
 RUN apk add --no-cache ca-certificates wget \
-    && adduser -D -u 10001 cluer
+    && adduser -D -u 10001 onboarding
 
 COPY --from=build /out/service /usr/local/bin/service
 
 # Runs unprivileged: nothing here needs root, and a container that does not need
 # it should not have it.
-USER cluer
+USER onboarding
 
 EXPOSE 8080
 

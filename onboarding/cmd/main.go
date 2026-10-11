@@ -16,7 +16,7 @@ import (
 	"github.com/ksendel-coder/onboarding_croquant/platform/pg"
 )
 
-// @title Cluer Onboarding
+// @title Onboarding Croquant
 // @version 0.1.0
 // @description Interactive onboarding platform.
 
