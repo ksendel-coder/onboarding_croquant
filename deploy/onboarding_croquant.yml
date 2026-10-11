@@ -3,9 +3,9 @@ server:
 
 postgres:
   address: postgres:5432
-  user: cluer
+  user: onboarding
   password: ""
-  dbname: cluer
+  dbname: onboarding
   sslmode: disable
 
 logger:

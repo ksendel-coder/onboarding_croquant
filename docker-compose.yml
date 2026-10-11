@@ -2,13 +2,13 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: cluer
-      POSTGRES_PASSWORD: ${CLUER_POSTGRES_PASSWORD:?set CLUER_POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: cluer
+      POSTGRES_USER: onboarding
+      POSTGRES_PASSWORD: ${ONBOARDING_POSTGRES_PASSWORD:?set ONBOARDING_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: onboarding
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cluer -d cluer"]
+      test: ["CMD-SHELL", "pg_isready -U onboarding -d onboarding"]
       interval: 2s
       timeout: 3s
       retries: 15
@@ -24,9 +24,9 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./deploy/cluer.yml:/run/secrets/cluer.yml:ro
+      - ./deploy/onboarding_croquant.yml:/run/secrets/onboarding_croquant.yml:ro
     environment:
-      CLUER_POSTGRES_PASSWORD: ${CLUER_POSTGRES_PASSWORD:?set CLUER_POSTGRES_PASSWORD in .env}
+      ONBOARDING_POSTGRES_PASSWORD: ${ONBOARDING_POSTGRES_PASSWORD:?set ONBOARDING_POSTGRES_PASSWORD in .env}
     restart: "no"
 
   onboarding:
@@ -38,9 +38,9 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - ./deploy/cluer.yml:/run/secrets/cluer.yml:ro
+      - ./deploy/onboarding_croquant.yml:/run/secrets/onboarding_croquant.yml:ro
     environment:
-      CLUER_POSTGRES_PASSWORD: ${CLUER_POSTGRES_PASSWORD:?set CLUER_POSTGRES_PASSWORD in .env}
+      ONBOARDING_POSTGRES_PASSWORD: ${ONBOARDING_POSTGRES_PASSWORD:?set ONBOARDING_POSTGRES_PASSWORD in .env}
     ports:
       - "127.0.0.1:8080:8080"
     healthcheck:

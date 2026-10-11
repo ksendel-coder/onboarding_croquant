@@ -13,8 +13,8 @@ import (
 const (
 	ConfigType        = "yml"
 	DefaultConfigPath = "/run/secrets"
-	DefaultConfigName = "cluer"
-	EnvPrefix         = "cluer"
+	DefaultConfigName = "onboarding_croquant"
+	EnvPrefix         = "onboarding"
 )
 
 type (
