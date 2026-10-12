@@ -3,7 +3,7 @@ import styles from "./Styles.module.scss";
 import cn from "classnames";
 
 interface ButtonProps {
-  size?: "nav";
+  size?: "nav" | "edit" | "checkbox";
   color?: "primary" | "transparent" | "grey" | "pink" | "back" | "save" | "hint" | "edit";
   children?: React.ReactNode;
   onClick?: () => void;

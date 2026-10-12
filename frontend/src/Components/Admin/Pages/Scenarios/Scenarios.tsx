@@ -4,6 +4,7 @@ import { Button } from "../../../UI/Button";
 import { Filters } from "../../../UI/Filters/Filters";
 import cn from "classnames";
 import styles from "./Styles.module.scss";
+import { Checkbox } from "../../../UI/Checkbox";
 
 type ScenarioStatus = "draft" | "published";
 
@@ -67,6 +68,7 @@ function ScenariosComponent() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [scenarios, setScenarios] = useState<Scenario[]>(scenariosMock);
 
   useEffect(() => {
     getCurrentApp()
@@ -79,16 +81,20 @@ function ScenariosComponent() {
   }, []);
 
   const filteredScenarios = useMemo(() => {
-    return scenariosMock.filter((item) => {
+    return scenarios.filter((item) => {
       const matchesSearch = item.title.toLowerCase().includes(search.trim().toLowerCase());
       const matchesStatus = status === "all" || item.status === status;
       return matchesSearch && matchesStatus;
     });
-  }, [search, status]);
+  }, [scenarios, search, status]);
 
   const handleEdit = (id: string) => {
     console.log("edit", id);
   };
+
+  const handleToggle = (id: string) => {
+    setScenarios((prev) => prev.map((item) => item.id === id ? {...item, enabled: !item.enabled } : item));
+  }
 
   if (isLoading) return <div>Загрузка...</div>;
   if (error) return <div>{error}</div>;
@@ -110,57 +116,65 @@ function ScenariosComponent() {
         onStatusChange={setStatus}
       />
 
-      <div className={styles.page__table}>
-        <div className={styles.page__table__header}>
-          <span>Название сценария</span>
-          <span>Статус</span>
-          <span>Обновлен</span>
-          <span>Шагов</span>
-          <span>Показ</span>
-          <span>Действия</span>
-        </div>
+      <table className={styles.page__table}>
+        <thead>
+          <tr className={styles.page__table__header}>
+            <th>Название сценария</th>
+            <th>Статус</th>
+            <th>Обновлен</th>
+            <th>Шагов</th>
+            <th>Показ</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredScenarios.length === 0 ? (
+            <tr>
+              <td colSpan={6} className={styles.page__table__empty}>Сценарии не найдены</td>
+            </tr>
+          ) : (
+            filteredScenarios.map((item) => {
+              const tourStatus = getTourStatus(item);
+              return (
+                <tr className={styles.page__table__row} key={item.id}>
+                  <td className={styles.page__table__row__name}>{item.title}</td>
 
-        {filteredScenarios.length === 0 ? (
-          <div className={styles.page__table__empty}>Сценарии не найдены</div>
-        ) : (
-          filteredScenarios.map((item) => {
-            const tourStatus = getTourStatus(item);
-            return (
-              <div className={styles.page__table__row} key={item.id}>
-                <span className={styles.page__table__row__name}>{item.title}</span>
-
-                <span>
-                  <span
-                    className={cn(styles.page__table__row__status, tourStatus.type === "published"
+                  <td>
+                    <span className={cn(styles.page__table__row__status, tourStatus.type === "published"
                       ? styles.page__table__row__status__success : styles.page__table__row__status__warning)}
-                  >
-                    <span className={styles.page__table__row__status__dot}/>
-                    {tourStatus.label}
-                  </span>
-                </span>
+                    >
+                      <span className={styles.page__table__row__status__dot} />
+                      {tourStatus.label}
+                    </span>
+                  </td>
 
-                <span>{formatDate(item.updated_at)}</span>
-                <span>{getStepsLabel(item.hints?.length ?? 0)}</span>
+                  <td>{formatDate(item.updated_at)}</td>
+                  <td>{getStepsLabel(item.hints?.length ?? 0)}</td>
 
-                <span className={styles.page__table__row__show}>
-                  <span className={cn(styles.page__table__row__checkbox, item.enabled 
-                    && styles.page__table__row__checkbox__checked)}
-                  >
-                    {item.enabled && "✓"}
-                  </span>
-                  <span>{item.enabled ? "Вкл" : "Выкл"}</span>
-                </span>
-
-                <span className={styles.page__table__row__actions}>
-                  <button type="button" className={styles.page__table__row__edit} onClick={() => handleEdit(item.id)}>
-                    Редактировать
-                  </button>
-                </span>
-              </div>
-            );
-          })
-        )}
-      </div>
+                  <td className={styles.page__table__row__show}>
+                    <Checkbox
+                      checked={item.enabled}
+                      onChange={() => handleToggle(item.id)}
+                      label={item.enabled ? "Вкл" : "Выкл"}
+                    />
+                  </td>
+                  
+                  <td>
+                    <Button 
+                      size="edit" 
+                      color="edit" 
+                      className={styles.page__table__row__edit} 
+                      onClick={() => handleEdit(item.id)}
+                    >
+                      Редактировать
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
     </main>
   );
 }

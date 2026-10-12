@@ -7,6 +7,7 @@
   transition: color 0.2s ease, background-color 0.2s ease-in-out;
   border-radius: 15px;
   line-height: 100%;
+  font-family: inherit;
 
   &__primary { 
     background: linear-gradient(#6366F1, rgb(99 102 241 / 70%));
@@ -32,8 +33,26 @@
     }
   }
 
+  &__edit {
+    background: #F1F5F9;
+    font-size: 18;
+    font-weight: 700;
+    color: #000000;
+    border-radius: 20px;
+  }
+
   &__nav {
     width: 250px;
     height: 70px;
+  }
+
+  &__edit {
+    width: 166px;
+    height: 28px;
+  }
+
+  &__checkbox {
+    width: 20px;
+    height: 20px;
   }
 }
