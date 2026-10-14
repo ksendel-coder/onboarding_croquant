@@ -1,0 +1,31 @@
+.checkbox {
+  display: grid;
+  grid-template-columns: 24px 47px;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+
+  &__box {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #0d99ff;
+    border-radius: 7px;
+    color: #0d99ff;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  &__label {
+    font-size: 18px;
+    font-weight: 500;
+
+    &__active {
+      font-weight: 700;
+    }
+  }
+}
