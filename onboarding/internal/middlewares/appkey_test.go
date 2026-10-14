@@ -6,11 +6,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/domains"
 	appmw "github.com/ksendel-coder/onboarding_croquant/onboarding/internal/middlewares"
 	platform "github.com/ksendel-coder/onboarding_croquant/platform/middlewares"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
