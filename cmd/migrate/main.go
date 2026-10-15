@@ -27,7 +27,7 @@ func main() {
 	}
 	pool.Close()
 
-	if err := pg.Migrate(dsn, log); err != nil {
+	if err := pg.Migrate(&dsn, log); err != nil {
 		log.Fatal().Err(err).Str("dsn", cfg.PostgresConfig.SafeDSN()).Msg("Migrations failed")
 	}
 }

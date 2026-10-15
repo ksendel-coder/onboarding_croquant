@@ -79,7 +79,6 @@ func (tr *TourRepository) CreateWithDraft(ctx context.Context, t *domains.Tour) 
 	}
 
 	t.Status = domains.TourDraft
-	t.Hints = []domains.Hint{}
 	return t, nil
 }
 
@@ -146,7 +145,6 @@ func (tr *TourRepository) List(ctx context.Context, appId uuid.UUID) ([]*domains
 			t.TargetPath = *targetPath
 			t.Audience = &domains.Audience{ShowOnce: *showOnce, MaxShows: *maxShows, OnlyNew: *onlyNew}
 		}
-		t.Hints = []domains.Hint{}
 		tours = append(tours, t)
 	}
 	return tours, rows.Err()

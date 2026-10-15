@@ -12,6 +12,7 @@ import (
 type CreateStruct struct {
 	Logger            *zerolog.Logger
 	RuntimeController controllers.RuntimeControllerInterface
+	TourController    controllers.TourControllerInterface
 }
 
 func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Server {
@@ -46,6 +47,32 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 			"/apps/:appId",
 			createStruct.RuntimeController.UpdateApp,
 		)
+
+		tours := v1.Group("/tours")
+		{
+			tours.POST(
+				"",
+				createStruct.TourController.Create,
+			)
+
+			tours.GET(
+				"",
+				createStruct.TourController.List,
+			)
+
+			tourID := tours.Group("/:tourId")
+			{
+				tourID.PATCH(
+					"",
+					createStruct.TourController.UpdateMeta,
+				)
+
+				tourID.DELETE(
+					"",
+					createStruct.TourController.Archive,
+				)
+			}
+		}
 	}
 
 	createStruct.Logger.Debug().Msg("Routes initialized")

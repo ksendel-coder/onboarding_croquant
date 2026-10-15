@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"github.com/Vanady39/cluer/onboarding/internal/domains"
+	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/domains"
 )
 
 // The two shapes below are the on-disk contract of the jsonb columns
@@ -95,30 +95,4 @@ func marshalTriggerConfig(cfg *domains.TriggerConfig) ([]byte, error) {
 
 func marshalAudienceRules(rules []domains.AudienceRule) ([]byte, error) {
 	return marshalJSON(toAudienceRuleRows(rules))
-}
-
-// unmarshalTriggerConfig leaves dst untouched when the column was NULL, which
-// is what the caller relies on to tell "no config" from "empty config".
-func unmarshalTriggerConfig(data []byte, dst **domains.TriggerConfig) error {
-	if len(data) == 0 {
-		return nil
-	}
-	var row *triggerConfigRow
-	if err := unmarshalJSONB(data, &row); err != nil {
-		return err
-	}
-	*dst = row.toDomain()
-	return nil
-}
-
-func unmarshalAudienceRules(data []byte, dst *[]domains.AudienceRule) error {
-	if len(data) == 0 {
-		return nil
-	}
-	var rows []audienceRuleRow
-	if err := unmarshalJSONB(data, &rows); err != nil {
-		return err
-	}
-	*dst = audienceRuleRowsToDomain(rows)
-	return nil
 }
