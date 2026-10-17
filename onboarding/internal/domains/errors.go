@@ -44,13 +44,17 @@ func (le *LogicError) StatusCode() int {
 // Onboarding Reasons
 
 var (
-	ErrTitleRequired    = errors.New("title is required")
-	ErrOriginRequired   = errors.New("allowed_origins must not be empty")
-	ErrInvalidOrigin    = errors.New("invalid origin format")
-	ErrAppNotFound      = errors.New("app not found")
-	ErrAppKeyRequired   = errors.New("X-App-Key header is required")
-	ErrOriginNotAllowed = errors.New("origin is not in the allowed list")
-	ErrSubjectRequired  = errors.New("subjectId is required")
+	ErrTitleRequired      = errors.New("title is required")
+	ErrOriginRequired     = errors.New("allowed_origins must not be empty")
+	ErrInvalidOrigin      = errors.New("invalid origin format")
+	ErrAppNotFound        = errors.New("app not found")
+	ErrAppKeyRequired     = errors.New("X-App-Key header is required")
+	ErrOriginNotAllowed   = errors.New("origin is not in the allowed list")
+	ErrSubjectRequired    = errors.New("subjectId is required")
+	ErrTargetPathRequired = errors.New("target_path is required")
+	ErrPriorityNegative   = errors.New("priority must be >= 0")
+	ErrTourNotFound       = errors.New("tour not found")
+	ErrVersionNotFound    = errors.New("version not found")
 )
 
 // Helpers

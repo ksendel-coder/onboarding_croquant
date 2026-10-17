@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
-	migratepgx "github.com/golang-migrate/migrate/v4/database/pgx/v5"
+	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/ksendel-coder/onboarding_croquant/migrations"
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
@@ -52,24 +53,24 @@ func Connect(ctx context.Context, dsn string, logger *zerolog.Logger) (*pgxpool.
 	}
 }
 
-func Migrate(dsn string, logger *zerolog.Logger) error {
+func Migrate(dsn *string, logger *zerolog.Logger) error {
 	source, err := iofs.New(migrations.FS, ".")
 	if err != nil {
 		return fmt.Errorf("read embedded migrations: %w", err)
 	}
 
-	db, err := sql.Open("pgx/v5", dsn)
+	db, err := sql.Open("postgres", *dsn)
 	if err != nil {
 		return fmt.Errorf("open migration connection: %w", err)
 	}
 	defer db.Close()
 
-	driver, err := migratepgx.WithInstance(db, &migratepgx.Config{})
+	driver, err := migratepostgres.WithInstance(db, &migratepostgres.Config{})
 	if err != nil {
 		return fmt.Errorf("build migration driver: %w", err)
 	}
 
-	m, err := migrate.NewWithInstance("iofs", source, "pgx5", driver)
+	m, err := migrate.NewWithInstance("iofs", source, "postgres", driver)
 	if err != nil {
 		return fmt.Errorf("build migrator: %w", err)
 	}
@@ -82,7 +83,11 @@ func Migrate(dsn string, logger *zerolog.Logger) error {
 	if err != nil && !errors.Is(err, migrate.ErrNilVersion) {
 		return fmt.Errorf("read schema version: %w", err)
 	}
-	logger.Info().Uint("version", version).Bool("dirty", dirty).Msg("Schema is up to date")
+
+	logger.Info().
+		Uint("version", version).
+		Bool("dirty", dirty).
+		Msg("Schema is up to date")
 
 	return nil
 }
