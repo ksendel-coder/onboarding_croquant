@@ -4,9 +4,11 @@ import { Admin } from "../Components/Admin/Admin";
 import { Scenarios } from "../Components/Admin/Pages/Scenarios";
 import { Header } from "../Components/Layouts/Header/Header";
 
+const queryClient = new QueryClient();
+
 function App() {
   return (
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
           <Route path="/admin" element={<WrappPages />}>
