@@ -29,6 +29,15 @@ type (
 		CreateApp(ctx context.Context, app *App) error
 		AppByKey(ctx context.Context, key string) (*App, error)
 		ListApps(ctx context.Context) ([]*App, error)
+		SubjectProgress(
+			ctx context.Context,
+			appId uuid.UUID,
+			subjectId string,
+		) (map[uuid.UUID]*Progress, error)
+		UpsertProgress(
+			ctx context.Context,
+			p *Progress,
+		) error
 		UpdateApp(
 			ctx context.Context,
 			id uuid.UUID,
