@@ -54,7 +54,10 @@ func main() {
 
 	tourController := controllers.NewTourController(tourDomain)
 
-	runtimeDomain := domains.NewRuntimeDomain(runtimeRepo)
+	runtimeDomain := domains.NewRuntimeDomain(
+		tourRepo,
+		runtimeRepo,
+	)
 
 	srvLogger := logger.New(cfg.GetLoggerConfig("server").Level)
 
