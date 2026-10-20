@@ -3,12 +3,14 @@ package domains
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type (
 	RuntimeDomain struct {
+		tours   TourRepositoryInterface
 		runtime RuntimeRepositoryInterface
 	}
 
@@ -22,6 +24,10 @@ type (
 			name *string,
 			allowedOrigins []string,
 		) (*App, error)
+		Resolve(
+			ctx context.Context,
+			req ResolveRequest,
+		) (*ResolveResult, error)
 		Ping(ctx context.Context) error
 	}
 
@@ -29,6 +35,15 @@ type (
 		CreateApp(ctx context.Context, app *App) error
 		AppByKey(ctx context.Context, key string) (*App, error)
 		ListApps(ctx context.Context) ([]*App, error)
+		SubjectProgress(
+			ctx context.Context,
+			appId uuid.UUID,
+			subjectId string,
+		) (map[uuid.UUID]*Progress, error)
+		UpsertProgress(
+			ctx context.Context,
+			p *Progress,
+		) error
 		UpdateApp(
 			ctx context.Context,
 			id uuid.UUID,
@@ -40,9 +55,13 @@ type (
 )
 
 func NewRuntimeDomain(
+	tours TourRepositoryInterface,
 	runtime RuntimeRepositoryInterface,
 ) *RuntimeDomain {
-	return &RuntimeDomain{runtime: runtime}
+	return &RuntimeDomain{
+		tours:   tours,
+		runtime: runtime,
+	}
 }
 
 func (rd *RuntimeDomain) AppByKey(ctx context.Context, key string) (*App, error) {
@@ -93,6 +112,110 @@ func (rd *RuntimeDomain) UpdateApp(
 
 func (rd *RuntimeDomain) ListApps(ctx context.Context) ([]*App, error) {
 	return rd.runtime.ListApps(ctx)
+}
+
+func (rd *RuntimeDomain) Resolve(
+	ctx context.Context,
+	req ResolveRequest,
+) (*ResolveResult, error) {
+	if req.SubjectId == "" {
+		return nil, logicErr(
+			ErrSubjectRequired,
+			"resolve",
+			http.StatusBadRequest,
+		)
+	}
+
+	candidates, err := rd.tours.ResolveCandidates(
+		ctx,
+		req.AppId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(candidates) == 0 {
+		return nil, nil
+	}
+
+	progress, err := rd.runtime.SubjectProgress(
+		ctx,
+		req.AppId,
+		req.SubjectId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	path := PathFromURL(req.Url)
+
+	for _, tour := range candidates {
+		if !MatchPath(
+			tour.TargetPath,
+			path,
+		) {
+			continue
+		}
+
+		return rd.startScenario(
+			ctx,
+			req,
+			tour,
+			progress[tour.Id],
+		)
+	}
+
+	return nil, nil
+}
+
+func (rd *RuntimeDomain) startScenario(
+	ctx context.Context,
+	req ResolveRequest,
+	tour *Tour,
+	current *Progress,
+) (*ResolveResult, error) {
+	now := time.Now().UTC()
+
+	switch {
+	case current == nil:
+		current = &Progress{
+			AppId:         req.AppId,
+			SubjectId:     req.SubjectId,
+			TourId:        tour.Id,
+			TourVersionId: tour.VersionId,
+			Status:        ProgressInProgress,
+			ShowsCount:    1,
+			StartedAt:     now,
+		}
+
+	case current.TourVersionId != tour.VersionId:
+		current = &Progress{
+			AppId:         req.AppId,
+			SubjectId:     req.SubjectId,
+			TourId:        tour.Id,
+			TourVersionId: tour.VersionId,
+			Status:        ProgressInProgress,
+			ShowsCount:    current.ShowsCount + 1,
+			StartedAt:     now,
+		}
+
+	default:
+		current.ShowsCount++
+	}
+
+	if err := rd.runtime.UpsertProgress(
+		ctx,
+		current,
+	); err != nil {
+		return nil, err
+	}
+
+	return &ResolveResult{
+		Tour:          tour,
+		TourVersionId: tour.VersionId,
+		Version:       tour.Version,
+		CurrentHintId: nil,
+	}, nil
 }
 
 func (rd *RuntimeDomain) Ping(ctx context.Context) error {

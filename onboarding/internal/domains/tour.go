@@ -51,6 +51,11 @@ type TourRepositoryInterface interface {
 		appId uuid.UUID,
 	) ([]*Tour, error)
 
+	ResolveCandidates(
+		ctx context.Context,
+		appId uuid.UUID,
+	) ([]*Tour, error)
+
 	UpdateMeta(
 		ctx context.Context,
 		id uuid.UUID,

@@ -66,6 +66,114 @@ func (rr *RuntimeRepository) AppByKey(ctx context.Context, key string) (*domains
 	return a, nil
 }
 
+func (rr *RuntimeRepository) SubjectProgress(
+	ctx context.Context,
+	appId uuid.UUID,
+	subjectId string,
+) (map[uuid.UUID]*domains.Progress, error) {
+	rows, err := rr.pool.Query(ctx, `
+		SELECT
+			app_id,
+			subject_id,
+			tour_id,
+			tour_version_id,
+			current_hint_id,
+			status,
+			shows_count,
+			started_at,
+			updated_at,
+			finished_at
+		FROM tour_progress
+		WHERE app_id = $1
+		  AND subject_id = $2`,
+		appId,
+		subjectId,
+	)
+	if err != nil {
+		return nil, wrap(
+			err,
+			domains.ErrTourNotFound,
+			subjectId,
+			errs.Retrieve,
+		)
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID]*domains.Progress)
+
+	for rows.Next() {
+		p := new(domains.Progress)
+
+		if err := rows.Scan(
+			&p.AppId,
+			&p.SubjectId,
+			&p.TourId,
+			&p.TourVersionId,
+			&p.CurrentHintId,
+			&p.Status,
+			&p.ShowsCount,
+			&p.StartedAt,
+			&p.UpdatedAt,
+			&p.FinishedAt,
+		); err != nil {
+			return nil, wrap(
+				err,
+				domains.ErrTourNotFound,
+				subjectId,
+				errs.Retrieve,
+			)
+		}
+
+		result[p.TourId] = p
+	}
+
+	return result, rows.Err()
+}
+
+func (rr *RuntimeRepository) UpsertProgress(
+	ctx context.Context,
+	p *domains.Progress,
+) error {
+	_, err := rr.pool.Exec(ctx, `
+		INSERT INTO tour_progress (
+			app_id,
+			subject_id,
+			tour_id,
+			tour_version_id,
+			current_hint_id,
+			status,
+			shows_count,
+			started_at,
+			finished_at
+		)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		ON CONFLICT (app_id, subject_id, tour_id)
+		DO UPDATE SET
+			tour_version_id = EXCLUDED.tour_version_id,
+			current_hint_id = EXCLUDED.current_hint_id,
+			status          = EXCLUDED.status,
+			shows_count     = EXCLUDED.shows_count,
+			started_at      = EXCLUDED.started_at,
+			finished_at     = EXCLUDED.finished_at`,
+		p.AppId,
+		p.SubjectId,
+		p.TourId,
+		p.TourVersionId,
+		p.CurrentHintId,
+		p.Status,
+		p.ShowsCount,
+		p.StartedAt,
+		p.FinishedAt,
+	)
+
+	return wrap(
+		err,
+		domains.ErrTourNotFound,
+		p.SubjectId,
+		errs.Update,
+	)
+}
+
 func (rr *RuntimeRepository) UpdateApp(
 	ctx context.Context,
 	id uuid.UUID,
