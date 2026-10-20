@@ -96,3 +96,27 @@ func marshalTriggerConfig(cfg *domains.TriggerConfig) ([]byte, error) {
 func marshalAudienceRules(rules []domains.AudienceRule) ([]byte, error) {
 	return marshalJSON(toAudienceRuleRows(rules))
 }
+
+func unmarshalTriggerConfig(data []byte, dst **domains.TriggerConfig) error {
+	if len(data) == 0 {
+		return nil
+	}
+	var row *triggerConfigRow
+	if err := unmarshalJSONB(data, &row); err != nil {
+		return err
+	}
+	*dst = row.toDomain()
+	return nil
+}
+
+func unmarshalAudienceRules(data []byte, dst *[]domains.AudienceRule) error {
+	if len(data) == 0 {
+		return nil
+	}
+	var rows []audienceRuleRow
+	if err := unmarshalJSONB(data, &rows); err != nil {
+		return err
+	}
+	*dst = audienceRuleRowsToDomain(rows)
+	return nil
+}

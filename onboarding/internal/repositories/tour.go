@@ -203,6 +203,67 @@ func (tr *TourRepository) Archive(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+func (tr *TourRepository) ResolveCandidates(ctx context.Context, appId uuid.UUID) ([]*domains.Tour, error) {
+	rows, err := tr.pool.Query(ctx, `
+		SELECT t.id, t.app_id, t.title, t.description, t.enabled, t.priority,
+		       t.created_at, t.updated_at,
+		       v.id, v.version, v.trigger_type, v.target_path,
+		       v.audience_show_once, v.audience_max_shows, v.audience_only_new,
+		       v.audience_rules, v.trigger_config
+		FROM tours t
+		JOIN tour_versions v ON v.tour_id = t.id AND v.status = 'published'
+		WHERE t.app_id = $1 AND t.enabled AND t.archived_at IS NULL
+		ORDER BY t.priority DESC, t.created_at ASC`, appId)
+	if err != nil {
+		return nil, wrap(err, domains.ErrTourNotFound, appId.String(), errs.Retrieve)
+	}
+	defer rows.Close()
+
+	tours := make([]*domains.Tour, 0)
+	for rows.Next() {
+		t := new(domains.Tour)
+		t.Audience = new(domains.Audience)
+
+		var audienceRulesBytes []byte
+		var triggerConfigBytes []byte
+
+		if err := rows.Scan(
+			&t.Id, &t.AppId, &t.Title, &t.Description, &t.Enabled, &t.Priority,
+			&t.CreatedAt, &t.UpdatedAt,
+			&t.VersionId, &t.Version, &t.TriggerType, &t.TargetPath,
+			&t.Audience.ShowOnce, &t.Audience.MaxShows, &t.Audience.OnlyNew,
+			&audienceRulesBytes, &triggerConfigBytes,
+		); err != nil {
+			return nil, wrap(err, domains.ErrTourNotFound, appId.String(), errs.Retrieve)
+		}
+
+		if err := unmarshalAudienceRules(audienceRulesBytes, &t.Audience.Rules); err != nil {
+			tr.logger.Error().
+				Err(err).
+				Str("tour_id", t.Id.String()).
+				Str("version_id", t.VersionId.String()).
+				Str("app_id", appId.String()).
+				Msg("corrupted audience_rules in published tour, skipping tour")
+			continue
+		}
+
+		if err := unmarshalTriggerConfig(triggerConfigBytes, &t.TriggerConfig); err != nil {
+			tr.logger.Error().
+				Err(err).
+				Str("tour_id", t.Id.String()).
+				Str("version_id", t.VersionId.String()).
+				Str("app_id", appId.String()).
+				Msg("corrupted trigger_config in published tour, skipping tour")
+			continue
+		}
+
+		t.Status = domains.TourPublished
+		tours = append(tours, t)
+	}
+
+	return tours, rows.Err()
+}
+
 func marshalJSON(v any) ([]byte, error) {
 	if v == nil {
 		return nil, nil
@@ -232,4 +293,14 @@ func marshalJSON(v any) ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func unmarshalJSONB(data []byte, dst any) error {
+	if len(data) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(data, dst); err != nil {
+		return fmt.Errorf("json unmarshal: %w", err)
+	}
+	return nil
 }
