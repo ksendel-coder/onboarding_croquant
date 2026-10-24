@@ -55,6 +55,12 @@ var (
 	ErrPriorityNegative   = errors.New("priority must be >= 0")
 	ErrTourNotFound       = errors.New("tour not found")
 	ErrVersionNotFound    = errors.New("version not found")
+	ErrHintNotFound       = errors.New("hint not found")
+	ErrBadPlacement       = errors.New("invalid placement value")
+	ErrSelectorRequired   = errors.New("selector is required")
+	ErrReorderMismatch    = errors.New("reorder ids do not match existing tour hints")
+	ErrVersionImmutable   = errors.New("published and archived versions cannot be edited")
+	ErrNoDraft            = errors.New("tour has no draft to work with")
 )
 
 // Helpers

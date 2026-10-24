@@ -13,6 +13,7 @@ type CreateStruct struct {
 	Logger            *zerolog.Logger
 	RuntimeController controllers.RuntimeControllerInterface
 	TourController    controllers.TourControllerInterface
+	HintController    controllers.HintControllerInterface
 }
 
 func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Server {
@@ -28,49 +29,26 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 
 	v1 := router.Group("/v1")
 	{
-		v1.GET(
-			"/health",
-			createStruct.RuntimeController.Health,
-		)
-
-		v1.POST(
-			"/apps",
-			createStruct.RuntimeController.CreateApp,
-		)
-
-		v1.GET(
-			"/apps",
-			createStruct.RuntimeController.ListApps,
-		)
-
-		v1.PATCH(
-			"/apps/:appId",
-			createStruct.RuntimeController.UpdateApp,
-		)
+		v1.GET("/health", createStruct.RuntimeController.Health)
+		v1.POST("/apps", createStruct.RuntimeController.CreateApp)
+		v1.GET("/apps", createStruct.RuntimeController.ListApps)
+		v1.PATCH("/apps/:appId", createStruct.RuntimeController.UpdateApp)
 
 		tours := v1.Group("/tours")
 		{
-			tours.POST(
-				"",
-				createStruct.TourController.Create,
-			)
-
-			tours.GET(
-				"",
-				createStruct.TourController.List,
-			)
+			tours.POST("", createStruct.TourController.Create)
+			tours.GET("", createStruct.TourController.List)
 
 			tourID := tours.Group("/:tourId")
 			{
-				tourID.PATCH(
-					"",
-					createStruct.TourController.UpdateMeta,
-				)
+				tourID.PATCH("", createStruct.TourController.UpdateMeta)
+				tourID.DELETE("", createStruct.TourController.Archive)
 
-				tourID.DELETE(
-					"",
-					createStruct.TourController.Archive,
-				)
+				tourID.POST("/hints", createStruct.HintController.Create)
+				tourID.GET("/hints", createStruct.HintController.List)
+				tourID.PATCH("/hints/:hintId", createStruct.HintController.Update)
+				tourID.DELETE("/hints/:hintId", createStruct.HintController.Delete)
+				tourID.PUT("/hints/order", createStruct.HintController.Reorder)
 			}
 		}
 	}

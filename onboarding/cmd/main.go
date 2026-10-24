@@ -50,14 +50,17 @@ func main() {
 
 	tourRepo := repositories.NewTourRepository(pool, defaultLogger)
 
+	hintRepo := repositories.NewHintRepository(pool, defaultLogger)
+
 	tourDomain := domains.NewTourDomain(tourRepo)
+
+	hintDomain := domains.NewHintDomain(tourRepo, hintRepo)
 
 	tourController := controllers.NewTourController(tourDomain)
 
-	runtimeDomain := domains.NewRuntimeDomain(
-		tourRepo,
-		runtimeRepo,
-	)
+	hintController := controllers.NewHintController(hintDomain)
+
+	runtimeDomain := domains.NewRuntimeDomain(tourRepo, runtimeRepo)
 
 	srvLogger := logger.New(cfg.GetLoggerConfig("server").Level)
 
@@ -67,6 +70,7 @@ func main() {
 		Logger:            srvLogger,
 		RuntimeController: runtimeController,
 		TourController:    tourController,
+		HintController:    hintController,
 	})
 
 	defaultLogger.Debug().Msg("Server created successfully")
