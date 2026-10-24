@@ -289,6 +289,10 @@ func (tr *TourRepository) VersionByStatus(ctx context.Context, tourId uuid.UUID,
 	return version, nil
 }
 
+type scanner interface {
+	Scan(dest ...any) error
+}
+
 func marshalJSON(v any) ([]byte, error) {
 	if v == nil {
 		return nil, nil
