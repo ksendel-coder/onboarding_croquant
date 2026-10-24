@@ -16,3 +16,11 @@ export interface UpdateTourMetaRequest {
   enabled?: boolean;
   priority?: number;
 }
+
+export interface CreateTourRequest {
+  title: string;
+  description: string;
+  enabled: boolean;
+  priority: number;
+  target_path: string;
+}
