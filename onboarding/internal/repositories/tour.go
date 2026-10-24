@@ -264,6 +264,31 @@ func (tr *TourRepository) ResolveCandidates(ctx context.Context, appId uuid.UUID
 	return tours, rows.Err()
 }
 
+func (tr *TourRepository) VersionByStatus(ctx context.Context, tourId uuid.UUID, status domains.TourStatus) (*domains.TourVersion, error) {
+	version := new(domains.TourVersion)
+
+	err := tr.pool.QueryRow(ctx, `
+		SELECT id, tour_id, version, status
+		FROM tour_versions
+		WHERE tour_id = $1 AND status = $2
+	`, tourId, status).Scan(
+		&version.Id,
+		&version.TourId,
+		&version.Version,
+		&version.Status,
+	)
+	if err != nil {
+		return nil, wrap(
+			err,
+			domains.ErrVersionNotFound,
+			tourId.String()+"/"+string(status),
+			errs.Retrieve,
+		)
+	}
+
+	return version, nil
+}
+
 func marshalJSON(v any) ([]byte, error) {
 	if v == nil {
 		return nil, nil

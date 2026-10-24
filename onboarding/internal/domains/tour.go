@@ -66,6 +66,12 @@ type TourRepositoryInterface interface {
 		ctx context.Context,
 		id uuid.UUID,
 	) error
+
+	VersionByStatus(
+		ctx context.Context,
+		tourId uuid.UUID,
+		status TourStatus,
+	) (*TourVersion, error)
 }
 
 type TourMetaPatch struct {

@@ -68,3 +68,10 @@ type Tour struct {
 	TargetPath string
 	Audience   *Audience
 }
+
+type TourVersion struct {
+	Id      uuid.UUID
+	TourId  uuid.UUID
+	Version int
+	Status  TourStatus
+}
