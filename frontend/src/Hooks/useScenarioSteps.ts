@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { onboardingAPI } from "../Api/onboarding";
 import type { CreateHintRequest, Hint } from "../Types";
 import { isValidSelector } from "../Utils/domSelector";
+import { arrayMove } from "@dnd-kit/sortable";
 
 export const emptyStep: CreateHintRequest = { title: "", content: "", selector: "", placement: "bottom" };
 
@@ -65,10 +66,18 @@ export function useScenarioSteps(tourId: string | undefined) {
       await refreshHints();
     },
   });
-  const removeHint = useMutation({
-    mutationFn: (id: string) => onboardingAPI.deleteHint(tourId!, id),
-    onSuccess: refreshHints,
+
+  const removeHint = useMutation({mutationFn: (id: string) => onboardingAPI.deleteHint(tourId!, id),
+    onSuccess: async (_, deletedId) => {
+      if (editingHintId === deletedId) {
+        setEditingHintId(null);
+        setStepForm({ ...emptyStep });
+        setStepErrors({});
+      }
+      await refreshHints();
+    },
   });
+
   const reorderHints = useMutation({
     mutationFn: (ids: string[]) => onboardingAPI.reorderHints(tourId!, ids),
     onSuccess: refreshHints,
@@ -96,20 +105,25 @@ export function useScenarioSteps(tourId: string | undefined) {
   const moveHint = (index: number, delta: number) => {
     const length = isNew ? draftHints.length : hints.length;
     const destination = index + delta;
-    if (destination < 0 || destination >= length || busy || draftLocked) return;
 
+    if (destination < 0 || destination >= length || busy || draftLocked) return;
+    
     if (isNew) {
-      setDraftHints((prev) => {
-        const next = [...prev];
-        [next[index], next[destination]] = [next[destination], next[index]];
-        return next;
+      setDraftHints((prev) => arrayMove(prev, index, destination));
+
+      setEditingDraftIndex((current) => {
+        if (current === null) return null;
+        if (current === index) return destination;
+
+        if (index < destination && current > index && current <= destination) return current - 1;
+        if (index > destination && current >= destination && current < index) return current + 1;
+        
+        return current;
       });
-      setEditingDraftIndex((current) => current === index ? destination : current === destination ? index : current);
       return;
     }
-    const ids = hints.map((hint) => hint.id);
-    [ids[index], ids[destination]] = [ids[destination], ids[index]];
-    reorderHints.mutate(ids);
+    const reordered = arrayMove(hints, index, destination);
+    reorderHints.mutate(reordered.map((hint) => hint.id));
   };
 
   const editDraftHint = (index: number) => {
@@ -122,8 +136,19 @@ export function useScenarioSteps(tourId: string | undefined) {
 
   const removeDraftHint = (index: number) => {
     if (draftLocked) return;
+
     setDraftHints((prev) => prev.filter((_, i) => i !== index));
-    setEditingDraftIndex((current) => current === index ? null : current !== null && current > index ? current - 1 : current);
+
+    if (editingDraftIndex === index) {
+      setStepForm({ ...emptyStep });
+      setStepErrors({});
+    }
+
+    setEditingDraftIndex((current) => {
+      if (current === index) return null;
+      if (current !== null && current > index) return current - 1;
+      return current;
+    });
   };
 
   const editHint = (hint: Hint) => {

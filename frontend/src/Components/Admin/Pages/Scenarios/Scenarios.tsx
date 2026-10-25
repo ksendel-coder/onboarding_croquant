@@ -90,7 +90,7 @@ function ScenariosComponent() {
               </td>
 
               <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "—"}</td>
-              <td>кол-во</td>
+              <td>{item.steps_count ?? "—"}</td>
 
               <td className={styles.page__table__row__show}>
                 <div className={styles.checkboxWrapper}>

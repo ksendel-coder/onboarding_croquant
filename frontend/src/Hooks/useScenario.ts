@@ -18,10 +18,6 @@ export function useScenario(tourId: string | undefined, uploadDraftHints: (id: s
 
   const [saveError, setSaveError] = useState("");
   const createdTourIdRef = useRef<string | null>(null);
-  const [trigger, setTrigger] = useState("on_load");
-  const [showOnce, setShowOnce] = useState(true);
-  const [onlyNewUsers, setOnlyNewUsers] = useState(false);
-  const [maxCount, setMaxCount] = useState("");
 
   const tourQuery = useQuery({
     queryKey: ["scenario-edit-tour", tourId],
@@ -95,6 +91,6 @@ export function useScenario(tourId: string | undefined, uploadDraftHints: (id: s
     onError: (error: Error) => setSaveError(error.message || "Не удалось сохранить сценарий и шаги"),
   });
 
-  return { navigate, isNew, tourId, scenario, setScenario, saveError, saveScenario, tourQuery, trigger, setTrigger, showOnce, 
-    setShowOnce, onlyNewUsers, setOnlyNewUsers, maxCount, setMaxCount, scenarioErrors, setScenarioErrors, submitScenario };
+  return { navigate, isNew, tourId, scenario, setScenario, saveError, saveScenario, tourQuery, scenarioErrors, setScenarioErrors, 
+    submitScenario };
 }
