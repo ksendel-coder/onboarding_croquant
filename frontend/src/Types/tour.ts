@@ -8,6 +8,7 @@ export interface TourListItem {
   updated_at: string;
   status?: "draft" | "published" | "archived";
   target_path?: string;
+  steps_count?: number;
 }
 
 export interface UpdateTourMetaRequest {
@@ -15,4 +16,12 @@ export interface UpdateTourMetaRequest {
   description?: string;
   enabled?: boolean;
   priority?: number;
+}
+
+export interface CreateTourRequest {
+  title: string;
+  description: string;
+  enabled: boolean;
+  priority: number;
+  target_path: string;
 }

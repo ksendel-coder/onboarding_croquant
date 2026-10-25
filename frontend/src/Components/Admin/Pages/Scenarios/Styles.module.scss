@@ -79,7 +79,7 @@
           width: 14%;
         }
         &:nth-child(6) {
-          width: 17%;
+          width: 15%;
         }
 
         &:first-child {
@@ -103,6 +103,14 @@
           padding-left: 46px;
           text-align: left;
           width: 204px;
+        }
+      }
+
+      &__show {
+        .checkboxWrapper {
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
       }
 
@@ -169,4 +177,11 @@
       border-top: 1px solid #e2e8f0;
     }
   }
+}
+
+.checkboxWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }

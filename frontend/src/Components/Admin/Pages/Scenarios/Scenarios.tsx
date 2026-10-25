@@ -7,12 +7,14 @@ import { Checkbox } from "../../../UI/Checkbox";
 import { useToursQuery } from "../../../../Hooks/useToursQuery";
 // import { useDeleteTourMutation } from "../../../../Hooks/useDeleteTourMutation";
 import { onboardingAPI } from "../../../../Api/onboarding";
+import { useNavigate } from "react-router-dom";
 
 function ScenariosComponent() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const { data: scenarios = [], isLoading, error, refetch } = useToursQuery();
   // const deleteMutation = useDeleteTourMutation();
+  const navigate = useNavigate();
 
   const filteredScenarios = useMemo(() => {
     return scenarios.filter((item) => {
@@ -34,7 +36,7 @@ function ScenariosComponent() {
   };
 
   const handleEdit = (id: string) => {
-    console.log("edit", id);
+    navigate(`/admin/scenarios/${id}/edit`);
   };
 
   if (isLoading) return <div>Загрузка...</div>;
@@ -47,7 +49,12 @@ function ScenariosComponent() {
           <h1 className={styles.main__info__block__title}>Сценарии онбординга</h1>
           <p className={styles.main__info__block__p}>Список и подсказки</p>
         </div>
-        <Button color="primary" className={styles.main__info__button}>+ Создать сценарий</Button>
+        <Button 
+          color="primary" 
+          className={styles.main__info__button} 
+          onClick={() => navigate("/admin/scenarios/new")}>
+          + Создать сценарий
+        </Button>
       </div>
 
       <Filters
@@ -83,14 +90,16 @@ function ScenariosComponent() {
               </td>
 
               <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "—"}</td>
-              <td>кол-во</td>
+              <td>{item.steps_count ?? "—"}</td>
 
               <td className={styles.page__table__row__show}>
-                <Checkbox
-                  checked={Boolean(item.enabled)}
-                  onChange={(checked) => handleToggleEnabled(item.id, checked)}
-                  label={item.enabled ? "Вкл" : "Выкл"}
-                />
+                <div className={styles.checkboxWrapper}>
+                  <Checkbox
+                    checked={Boolean(item.enabled)}
+                    onChange={(checked) => handleToggleEnabled(item.id, checked)}
+                    label={item.enabled ? "Вкл" : "Выкл"}
+                  />
+                </div>
               </td>
                 
                 <td>
