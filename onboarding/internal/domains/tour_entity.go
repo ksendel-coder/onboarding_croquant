@@ -67,6 +67,7 @@ type Tour struct {
 
 	TargetPath string
 	Audience   *Audience
+	StepsCount int `json:"steps_count"`
 }
 
 type TourVersion struct {

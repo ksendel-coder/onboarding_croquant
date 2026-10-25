@@ -21,6 +21,7 @@ type Tour struct {
 	Version    int       `json:"version,omitempty"`
 	Status     string    `json:"status,omitempty"`
 	TargetPath string    `json:"target_path,omitempty"`
+	StepsCount int       `json:"steps_count"`
 }
 
 func NewTour(t *domains.Tour) *Tour {
@@ -41,6 +42,7 @@ func NewTour(t *domains.Tour) *Tour {
 		Version:     t.Version,
 		Status:      string(t.Status),
 		TargetPath:  t.TargetPath,
+		StepsCount:  t.StepsCount,
 	}
 }
 

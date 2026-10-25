@@ -37,9 +37,9 @@ func (tr *TourRepository) CreateWithDraft(ctx context.Context, t *domains.Tour) 
 	defer tx.Rollback(ctx)
 
 	err = tx.QueryRow(ctx, `
-		INSERT INTO tours (app_id, title, description, enabled, priority)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, created_at, updated_at`,
+			INSERT INTO tours (app_id, title, description, enabled, priority)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING id, created_at, updated_at`,
 		t.AppId, t.Title, t.Description, t.Enabled, t.Priority,
 	).Scan(&t.Id, &t.CreatedAt, &t.UpdatedAt)
 	if err != nil {
@@ -60,12 +60,12 @@ func (tr *TourRepository) CreateWithDraft(ctx context.Context, t *domains.Tour) 
 	}
 
 	err = tx.QueryRow(ctx, `
-		INSERT INTO tour_versions (
-			tour_id, version, status, trigger_type, target_path,
-			audience_show_once, audience_max_shows, audience_only_new,
-			trigger_config, audience_rules)
-		VALUES ($1, 1, 'draft', $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, version`,
+			INSERT INTO tour_versions (
+				tour_id, version, status, trigger_type, target_path,
+				audience_show_once, audience_max_shows, audience_only_new,
+				trigger_config, audience_rules)
+			VALUES ($1, 1, 'draft', $2, $3, $4, $5, $6, $7, $8)
+			RETURNING id, version`,
 		t.Id, t.TriggerType, t.TargetPath,
 		t.Audience.ShowOnce, t.Audience.MaxShows, t.Audience.OnlyNew,
 		triggerConfigBytes, audienceRulesBytes,
@@ -85,9 +85,9 @@ func (tr *TourRepository) CreateWithDraft(ctx context.Context, t *domains.Tour) 
 func (tr *TourRepository) GetById(ctx context.Context, id uuid.UUID) (*domains.Tour, error) {
 	t := new(domains.Tour)
 	err := tr.pool.QueryRow(ctx, `
-		SELECT id, app_id, title, description, enabled, priority, created_at, updated_at
-		FROM tours
-		WHERE id = $1 AND archived_at IS NULL`, id,
+			SELECT id, app_id, title, description, enabled, priority, created_at, updated_at
+			FROM tours
+			WHERE id = $1 AND archived_at IS NULL`, id,
 	).Scan(&t.Id, &t.AppId, &t.Title, &t.Description, &t.Enabled, &t.Priority, &t.CreatedAt, &t.UpdatedAt)
 	if err != nil {
 		return nil, wrap(err, domains.ErrTourNotFound, id.String(), errs.Retrieve)
@@ -97,19 +97,22 @@ func (tr *TourRepository) GetById(ctx context.Context, id uuid.UUID) (*domains.T
 
 func (tr *TourRepository) List(ctx context.Context, appId uuid.UUID) ([]*domains.Tour, error) {
 	rows, err := tr.pool.Query(ctx, `
-		SELECT t.id, t.app_id, t.title, t.description, t.enabled, t.priority,
-		       t.created_at, t.updated_at,
-		       v.id, v.version, v.status, v.trigger_type, v.target_path,
-		       v.audience_show_once, v.audience_max_shows, v.audience_only_new
-		FROM tours t
-		LEFT JOIN LATERAL (
-			SELECT * FROM tour_versions tv
-			WHERE tv.tour_id = t.id
-			ORDER BY (tv.status = 'published') DESC, tv.version DESC
-			LIMIT 1
-		) v ON true
-		WHERE t.app_id = $1 AND t.archived_at IS NULL
-		ORDER BY t.priority DESC, t.created_at ASC`, appId)
+			SELECT t.id, t.app_id, t.title, t.description, t.enabled, t.priority,
+				t.created_at, t.updated_at,
+				v.id, v.version, v.status, v.trigger_type, v.target_path,
+				v.audience_show_once, v.audience_max_shows, v.audience_only_new, 
+				(SELECT COUNT(*)
+   				FROM hints h
+    			WHERE h.tour_version_id = v.id) AS steps_count
+			FROM tours t
+			LEFT JOIN LATERAL (
+				SELECT * FROM tour_versions tv
+				WHERE tv.tour_id = t.id
+				ORDER BY (tv.status = 'published') DESC, tv.version DESC
+				LIMIT 1
+			) v ON true
+			WHERE t.app_id = $1 AND t.archived_at IS NULL
+			ORDER BY t.priority DESC, t.created_at ASC`, appId)
 	if err != nil {
 		return nil, wrap(err, domains.ErrTourNotFound, appId.String(), errs.Retrieve)
 	}
@@ -132,7 +135,7 @@ func (tr *TourRepository) List(ctx context.Context, appId uuid.UUID) ([]*domains
 			&t.Id, &t.AppId, &t.Title, &t.Description, &t.Enabled, &t.Priority,
 			&t.CreatedAt, &t.UpdatedAt,
 			&versionId, &version, &status, &triggerType, &targetPath,
-			&showOnce, &maxShows, &onlyNew,
+			&showOnce, &maxShows, &onlyNew, &t.StepsCount,
 		); err != nil {
 			return nil, wrap(err, domains.ErrTourNotFound, appId.String(), errs.Retrieve)
 		}
@@ -177,9 +180,9 @@ func (tr *TourRepository) UpdateMeta(ctx context.Context, id uuid.UUID, p domain
 
 	args = append(args, id)
 	query := fmt.Sprintf(`
-		UPDATE tours SET %s
-		WHERE id = $%d AND archived_at IS NULL
-		RETURNING id, app_id, title, description, enabled, priority, created_at, updated_at`,
+			UPDATE tours SET %s
+			WHERE id = $%d AND archived_at IS NULL
+			RETURNING id, app_id, title, description, enabled, priority, created_at, updated_at`,
 		strings.Join(set, ", "), len(args))
 
 	t := new(domains.Tour)
@@ -205,15 +208,15 @@ func (tr *TourRepository) Archive(ctx context.Context, id uuid.UUID) error {
 
 func (tr *TourRepository) ResolveCandidates(ctx context.Context, appId uuid.UUID) ([]*domains.Tour, error) {
 	rows, err := tr.pool.Query(ctx, `
-		SELECT t.id, t.app_id, t.title, t.description, t.enabled, t.priority,
-		       t.created_at, t.updated_at,
-		       v.id, v.version, v.trigger_type, v.target_path,
-		       v.audience_show_once, v.audience_max_shows, v.audience_only_new,
-		       v.audience_rules, v.trigger_config
-		FROM tours t
-		JOIN tour_versions v ON v.tour_id = t.id AND v.status = 'published'
-		WHERE t.app_id = $1 AND t.enabled AND t.archived_at IS NULL
-		ORDER BY t.priority DESC, t.created_at ASC`, appId)
+			SELECT t.id, t.app_id, t.title, t.description, t.enabled, t.priority,
+				t.created_at, t.updated_at,
+				v.id, v.version, v.trigger_type, v.target_path,
+				v.audience_show_once, v.audience_max_shows, v.audience_only_new,
+				v.audience_rules, v.trigger_config
+			FROM tours t
+			JOIN tour_versions v ON v.tour_id = t.id AND v.status = 'published'
+			WHERE t.app_id = $1 AND t.enabled AND t.archived_at IS NULL
+			ORDER BY t.priority DESC, t.created_at ASC`, appId)
 	if err != nil {
 		return nil, wrap(err, domains.ErrTourNotFound, appId.String(), errs.Retrieve)
 	}
@@ -268,10 +271,10 @@ func (tr *TourRepository) VersionByStatus(ctx context.Context, tourId uuid.UUID,
 	version := new(domains.TourVersion)
 
 	err := tr.pool.QueryRow(ctx, `
-		SELECT id, tour_id, version, status
-		FROM tour_versions
-		WHERE tour_id = $1 AND status = $2
-	`, tourId, status).Scan(
+			SELECT id, tour_id, version, status
+			FROM tour_versions
+			WHERE tour_id = $1 AND status = $2
+		`, tourId, status).Scan(
 		&version.Id,
 		&version.TourId,
 		&version.Version,
