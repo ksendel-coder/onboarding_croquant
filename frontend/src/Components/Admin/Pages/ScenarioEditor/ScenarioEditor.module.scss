@@ -48,7 +48,7 @@
 .card h2 {
   margin-top: 0;
   font-size: 22px;
-  padding-bottom: 20px;
+  padding: 20px 0;
 }
 
 .fields {
@@ -257,5 +257,112 @@
   &:focus-within {
     border-color: #706cf5;
     border-width: 2px;
+  }
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e3e6f4;
+  border-radius: 14px;
+  background: #fff;
+  touch-action: manipulation;
+}
+
+.stepDragging {
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(101, 104, 241, 0.15);
+  border-color: #6568f1;
+}
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 38px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #6568f1;
+  cursor: default;
+  touch-action: none;
+
+  &:active {
+    cursor: default;
+  }
+
+  &:hover {
+    color: #6568f1;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.stepInfo {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+
+  strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  small {
+    font-size: 13px;
+    color: #94a3b8;
+    overflow-wrap: anywhere;
+  }
+}
+
+.stepActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid #e3e6f4;
+    border-radius: 10px;
+    background: #f7f7ff;
+    color: #6568f1;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: #eef0ff;
+    }
+  }
+
+  .deleteButton {
+    color: #ef4444;
+
+    &:hover:not(:disabled) {
+      background: #fef2f2;
+    }
   }
 }

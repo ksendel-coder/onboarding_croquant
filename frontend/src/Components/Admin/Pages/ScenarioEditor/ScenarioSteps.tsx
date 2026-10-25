@@ -3,6 +3,11 @@ import type { HintPlacement } from "../../../../Types";
 import { Select } from "../../../UI/Select";
 import { DomPicker } from "./DomPicker";
 import styles from "./ScenarioEditor.module.scss";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { Pencil, Trash2 } from "lucide-react";
+import { SortableStep } from "./SortableStep";
+
 
 type Editor = ReturnType<typeof useScenarioEditor>;
 
@@ -11,69 +16,89 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
           editingDraftIndex, editingHintId, stepsCount, stepForm, setStepForm, submitHint, formError, saveHint,
           reorderHints, isPicking, pick, setIsPicking } = editor;
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+                  useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  const stepIds = isNew ? draftHints.map((_, index) => `draft-${index}`) : hints.map((hint) => hint.id);
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+  if (!over || active.id === over.id || busy || draftLocked) return;
+
+  const oldIndex = stepIds.indexOf(String(active.id));
+  const newIndex = stepIds.indexOf(String(over.id));
+  if (oldIndex === -1 || newIndex === -1) return;
+  moveHint(oldIndex, newIndex - oldIndex);
+};
+
   return (
         <div className={styles.columns}>
           <section className={styles.card}>
-            <ol className={styles.steps}>
-              {isNew &&
-                draftHints.map((hint, index) => (
-                  <li key={`draft-${index}`}>
-                      {hint.title}
-                      {hint.selector}
-                    <div className={styles.actions}>
-                      <button
-                        type="button"
-                        disabled={busy || draftLocked || index === 0}
-                        onClick={() => moveHint(index, -1)}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        disabled={
-                          busy || draftLocked || index === draftHints.length - 1
-                        }
-                        onClick={() => moveHint(index, 1)}
-                      >
-                        ↓
-                      </button>
-                      <button type="button" disabled={busy || draftLocked} onClick={() => editDraftHint(index)}>
-                        Изменить
-                      </button>
-                      <button type="button" disabled={busy || draftLocked} onClick={() => removeDraftHint(index)}>
-                        Удалить
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              {!isNew &&
-                hints.map((hint, index) => (
-                  <li key={hint.id}>
-                      {hint.title}
-                      {hint.selector}
-                    <div className={styles.actions}>
-                      <button disabled={busy || index === 0} onClick={() => moveHint(index, -1)}>
-                        ↑
-                      </button>
-                      <button disabled={busy || index === hints.length - 1} onClick={() => moveHint(index, 1)}>
-                        ↓
-                      </button>
-                      <button disabled={busy} onClick={() => editHint(hint)}>
-                        Изменить
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={() => {
-                          if (window.confirm(`Удалить шаг «${hint.title}»?`))
-                            removeHint.mutate(hint.id);
-                        }}
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  </li>
-                ))}
-            </ol>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={stepIds} strategy={verticalListSortingStrategy}>
+                <ol className={styles.steps}>
+                  {isNew ? draftHints.map((hint, index) => (
+                    <SortableStep key={`draft-${index}`} id={`draft-${index}`} disabled={busy || draftLocked}>
+                      <div className={styles.stepInfo}>
+                        <strong>Шаг {index + 1} — {hint.title}</strong>
+                        <small>{hint.selector}</small>
+                      </div>
+
+                      <div className={styles.stepActions}>
+                        <button
+                          type="button"
+                          disabled={busy || draftLocked}
+                          aria-label="Изменить шаг"
+                          title="Изменить"
+                          onClick={() => editDraftHint(index)}
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy || draftLocked}
+                          aria-label="Удалить шаг"
+                          title="Удалить"
+                          className={styles.deleteButton}
+                          onClick={() => removeDraftHint(index)}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </SortableStep>
+                  ))
+                    : hints.map((hint, index) => (
+                      <SortableStep key={hint.id} id={hint.id} disabled={busy}>
+                        <div className={styles.stepInfo}>
+                          <strong>Шаг {index + 1} — {hint.title}</strong>
+                          <small>{hint.selector}</small>
+                        </div>
+
+                        <div className={styles.stepActions}>
+                          <button
+                          type="button"
+                          disabled={busy}
+                          aria-label="Изменить шаг"
+                          title="Изменить"
+                          onClick={() => editHint(hint)}
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label="Удалить шаг"
+                          title="Удалить"
+                          className={styles.deleteButton}
+                          onClick={() => { if (window.confirm(`Удалить шаг «${hint.title}»?`)) { removeHint.mutate(hint.id); }}}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </SortableStep>
+                  ))}
+                </ol>
+              </SortableContext>
+            </DndContext>
             <h2>
                 Шаг {editingDraftIndex !== null ? editingDraftIndex + 1 : editingHintId !== null 
                 ? (hints.find((h) => h.id === editingHintId)?.step ?? stepsCount + 1) : stepsCount + 1}
