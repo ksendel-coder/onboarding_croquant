@@ -13,23 +13,37 @@ interface SelectProps {
   className?: string;
 }
 
-function SelectComponent({ value, options, onChange, className = "" }: SelectProps) {
+function SelectComponent({
+  value,
+  options,
+  onChange,
+  className = "",
+}: SelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+
   const selectedOption = options.find((option) => option.value === value);
 
   return (
     <div className={`${styles.select} ${className}`}>
-      <button type="button" className={styles.select__control} onClick={() => setIsOpen((prev) => !prev)}>
+      <button
+        type="button"
+        className={styles.select__control}
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+      >
         <span>{selectedOption?.label}</span>
         <span className={styles.select__arrow} />
       </button>
 
       {isOpen && (
-        <div className={styles.select__menu}>
+        <div className={styles.select__menu} role="listbox">
           {options.map((option) => (
             <button
               key={option.value}
               type="button"
+              role="option"
+              aria-selected={option.value === value}
               className={styles.select__option}
               onClick={() => {
                 onChange(option.value);

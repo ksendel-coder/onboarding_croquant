@@ -33,12 +33,34 @@
     }
   }
 
+  &__back {
+    color: #94A3B8;
+    background: transparent;
+    border: 3px solid #94A3B8;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  &__grey {
+    color: #FFFFFF;
+    background: #94A3B8;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
   &__edit {
     background: #F1F5F9;
     font-size: 18;
     font-weight: 700;
     color: #000000;
     border-radius: 20px;
+  }
+
+  &__pink {
+    background: linear-gradient(#CE4EB4, #A955D8);
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: 600;
   }
 
   &__nav {
@@ -54,5 +76,20 @@
   &__checkbox {
     width: 20px;
     height: 20px;
+  }
+
+  &__back {
+    width: 120px;
+    height: 56px;
+  }
+
+  &__grey {
+    width: 250px;
+    height: 54px;
+  }
+
+  &__pink {
+    width: 170px;
+    height: 54px;
   }
 }

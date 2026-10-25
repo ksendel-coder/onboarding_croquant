@@ -2,7 +2,8 @@ import { memo } from "react";
 import { Outlet } from "react-router-dom";
 import { AdminTabs } from "./AdminTabs/AdminTabs";
 
-function AdminComponent() {
+function AdminLayoutWithTabsComponent() {
+
   return (
     <div>
       <AdminTabs />
@@ -11,4 +12,4 @@ function AdminComponent() {
   );
 }
 
-export const Admin = memo(AdminComponent);
+export const AdminLayoutWithTabs = memo(AdminLayoutWithTabsComponent);

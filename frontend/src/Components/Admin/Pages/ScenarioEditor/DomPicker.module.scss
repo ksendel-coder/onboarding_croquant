@@ -1,0 +1,56 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  background: rgba(20, 25, 45, 0.5);
+}
+
+.modal {
+  width: min(900px, 100%);
+  max-height: 90vh;
+  padding: 24px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(20, 25, 45, 0.2);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    color: #171c2e;
+  }
+
+  p {
+    margin: 0;
+    color: #8c9db9;
+    font-size: 14px;
+  }
+
+  button {
+    border: none;
+    background: transparent;
+    color: #91a0b9;
+    font-size: 24px;
+    cursor: pointer;
+  }
+}
+
+.preview {
+  display: block;
+  width: 100%;
+  height: min(60vh, 550px);
+  border: 1px solid #dce2ee;
+  border-radius: 12px;
+  background: white;
+}

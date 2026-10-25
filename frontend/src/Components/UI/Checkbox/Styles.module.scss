@@ -1,9 +1,9 @@
 .checkbox {
   display: grid;
-  grid-template-columns: 24px 47px;
-  gap: 2px;
+  grid-template-columns: 24px 1fr;
+  gap: 12px;
   align-items: center;
-  justify-content: center;
+  width: fit-content;
 
   &__box {
     width: 20px;
@@ -21,8 +21,11 @@
   }
 
   &__label {
-    font-size: 18px;
+    white-space: nowrap;
+    font-size: 16px;
     font-weight: 500;
+    color: #0f172a;
+    text-transform: none;
 
     &__active {
       font-weight: 700;

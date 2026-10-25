@@ -1,0 +1,260 @@
+.page {
+  padding: 50px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+.back {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  margin-bottom: 16px;
+  color: #6865d9;
+  font-size: 20px;
+  font-weight: 500;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+.header {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  &__buttons {
+    display: flex;
+    gap: 13px;
+  }
+}
+.header h1 {
+  font-size: 35px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.header p {
+  margin: 0;
+  color: #74798a;
+}
+.card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 42px;
+  box-shadow: 0 8px 30px rgb(39 44 81 / 7%);
+  margin-bottom: 24px;
+  min-width: 0;
+  height: 100%;
+}
+.card h2 {
+  margin-top: 0;
+  font-size: 22px;
+  padding-bottom: 20px;
+}
+
+.fields {
+  display: grid;
+  gap: 26px;
+}
+
+.fields > label:not(:has(input[type="checkbox"])) {
+  display: grid;
+  gap: 7px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.fields input:not([type="checkbox"]),
+.fields textarea,
+.fields select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1.5px solid #94a3b8;
+  border-radius: 11px;
+  font-size: 15px;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.fields {
+  input:not([type="checkbox"]),
+  textarea {
+    &::placeholder {
+      color: #0f172a;
+      font-weight: 400;
+      opacity: 0.4;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #706cf5;
+      border-width: 2px;
+    }
+  }
+}
+
+.fields textarea {
+  min-height: 90px;
+  resize: vertical;
+  resize: none;
+}
+.fields .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.primary,
+.secondary {
+  padding: 12px 25px;
+  border-radius: 10px;
+  cursor: pointer;
+  width: fit-content;
+}
+.primary {
+  border: 0;
+  background: #6568f1;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+.secondary {
+  border: 1px solid #706cf5;
+  background: #fff;
+  color: #6260d9;
+}
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.steps {
+  list-style: none;
+}
+.steps li {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid #e3e6f4;
+  border-radius: 12px;
+}
+.steps small {
+  display: block;
+  margin: 6px 0;
+  color: #777e91;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.actions button {
+  border: 1px solid #dcdff0;
+  background: #f7f7ff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.note {
+  color: #777e91;
+  font-size: 13px;
+}
+:global(.builderPickerActions) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+:global(.builderPickerActions button) {
+  border: 1px solid #706cf5;
+  border-radius: 10px;
+  background: #fff;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+:global(.builderPreview) {
+  width: 100%;
+  height: 480px;
+  border: 1px solid #e3e6f4;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.selectorField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+  }
+}
+
+.selectorRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid #bdc9dd;
+    border-radius: 7px;
+    background: #fff;
+    color: #0f172a;
+    font-size: 15px;
+
+    &:focus {
+      outline: none;
+      border-color: #706cf5;
+    }
+  }
+}
+
+.pickButton {
+  height: 42px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(#6568f1, #8d90f4);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #5955da;
+  }
+}
+
+.block {
+  display: grid;
+  grid-template-columns: 488px 1fr;
+  gap: 44px;
+}
+
+.select {
+  width: 100%;
+  border: 1.5px solid #94a3b8;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 15px;
+  color: #0f172a;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+
+  &:focus-within {
+    border-color: #706cf5;
+    border-width: 2px;
+  }
+}
