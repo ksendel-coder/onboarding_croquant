@@ -1,0 +1,22 @@
+.scenarioBuilder {
+  padding: 24px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.builderColumns {
+  display: grid;
+  grid-template-columns: minmax(300px, 440px) minmax(400px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.builderSteps { padding-left: 24px; }
+.builderSteps li { margin: 12px 0; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+.builderSteps small { display: block; overflow-wrap: anywhere; margin: 6px 0; }
+.builderStepActions, .builderPickerActions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.builderForm { display: grid; gap: 12px; margin-top: 18px; }
+.builderForm label { display: grid; gap: 4px; }
+.builderForm input, .builderForm textarea, .builderForm select { padding: 10px; width: 100%; box-sizing: border-box; }
+.builderPreview { width: 100%; min-height: 540px; background: #fff; border: 1px solid #ccc; border-radius: 10px; }
+@media (max-width: 900px) { .builderColumns { grid-template-columns: 1fr; } }
