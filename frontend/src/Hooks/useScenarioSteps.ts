@@ -8,13 +8,15 @@ import { isValidSelector } from "../Utils/domSelector";
 export const emptyStep: CreateHintRequest = { title: "", content: "", selector: "", placement: "bottom" };
 
 export function useScenarioSteps(tourId: string | undefined) {
+  type StepErrors = Partial<Record<"title" | "content" | "selector" | "placement", string>>;
+
   const isNew = !tourId;
   const queryClient = useQueryClient();
   const [draftHints, setDraftHints] = useState<CreateHintRequest[]>([]);
   const [editingDraftIndex, setEditingDraftIndex] = useState<number | null>(null);
   const [editingHintId, setEditingHintId] = useState<string | null>(null);
   const [stepForm, setStepForm] = useState<CreateHintRequest>({ ...emptyStep });
-  const [formError, setFormError] = useState("");
+  const [stepErrors, setStepErrors] = useState<StepErrors>({});
   const [isPicking, setIsPicking] = useState(false);
   const uploadedHintsCountRef = useRef(0);
   const [uploadStarted, setUploadStarted] = useState(false);
@@ -26,6 +28,20 @@ export function useScenarioSteps(tourId: string | undefined) {
   });
 
   const refreshHints = () => queryClient.invalidateQueries({ queryKey: ["hints", tourId] });
+
+  const validateStep = (step: CreateHintRequest): StepErrors => {
+    const errors: StepErrors = {};
+
+    if (!step.title.trim()) errors.title = "Введите название шага";
+    if (!step.content.trim()) errors.content = "Введите текст подсказки";
+
+    if (!step.selector.trim()) {
+      errors.selector = "Укажите CSS-селектор";
+    } else if (!isValidSelector(step.selector)) {
+      errors.selector = "Некорректный CSS-селектор";
+    }
+    return errors;
+  };
 
   const saveHint = useMutation({
     mutationFn: (data: CreateHintRequest) => {
@@ -45,7 +61,7 @@ export function useScenarioSteps(tourId: string | undefined) {
     onSuccess: async () => {
       setEditingHintId(null);
       setStepForm({ ...emptyStep });
-      setFormError("");
+      setStepErrors({});
       await refreshHints();
     },
   });
@@ -73,8 +89,8 @@ export function useScenarioSteps(tourId: string | undefined) {
 
   const pick = useCallback((selector: string) => {
     setStepForm((prev) => ({ ...prev, selector }));
+    setStepErrors((prev) => ({ ...prev, selector: undefined }));
     setIsPicking(false);
-    setFormError("");
   }, []);
 
   const moveHint = (index: number, delta: number) => {
@@ -101,7 +117,7 @@ export function useScenarioSteps(tourId: string | undefined) {
     setEditingDraftIndex(index);
     setEditingHintId(null);
     setStepForm({ ...draftHints[index] });
-    setFormError("");
+    setStepErrors({});
   };
 
   const removeDraftHint = (index: number) => {
@@ -113,29 +129,35 @@ export function useScenarioSteps(tourId: string | undefined) {
   const editHint = (hint: Hint) => {
     setEditingHintId(hint.id);
     setStepForm({ title: hint.title, content: hint.content, selector: hint.selector, placement: hint.placement });
-    setFormError("");
+    setStepErrors({});
   };
 
   const submitHint = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!stepForm.title.trim()) { setFormError("Введите название шага"); return; }
-    if (!stepForm.selector.trim() || !isValidSelector(stepForm.selector)) {
-      setFormError("Введите корректный CSS-селектор"); return;
+
+    const errors = validateStep(stepForm);
+    if (Object.keys(errors).length > 0) {
+      setStepErrors(errors);
+      return;
     }
-    setFormError("");
+    setStepErrors({});
 
     if (isNew) {
-      if (draftLocked) { setFormError("Сохранение начато. Повторите сохранение черновика."); return; }
-      if (editingDraftIndex === null) setDraftHints((prev) => [...prev, { ...stepForm }]);
-      else setDraftHints((prev) => prev.map((hint, index) => index === editingDraftIndex ? { ...stepForm } : hint));
+      if (draftLocked) return;
+
+      if (editingDraftIndex === null) {
+        setDraftHints((prev) => [...prev, { ...stepForm }]);
+      } else {
+        setDraftHints((prev) => prev.map((hint, index) => index === editingDraftIndex ? { ...stepForm } : hint));
+      }
       setEditingDraftIndex(null);
       setStepForm({ ...emptyStep });
       return;
     }
-    saveHint.mutate(stepForm);
-  };
+      saveHint.mutate(stepForm);
+    };
 
-  return { draftHints, editingDraftIndex, editingHintId, stepForm, setStepForm, formError, setFormError, isPicking, setIsPicking, 
+  return { draftHints, editingDraftIndex, editingHintId, stepForm, setStepForm, isPicking, setIsPicking, 
     hintsQuery, hints, stepsCount, busy, draftLocked, saveHint, removeHint, reorderHints, uploadDraftHints, moveHint, 
-    editDraftHint, removeDraftHint, editHint, submitHint, pick };
+    editDraftHint, removeDraftHint, editHint, submitHint, pick, stepErrors, setStepErrors };
 }

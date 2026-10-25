@@ -12,8 +12,8 @@ import { SortableStep } from "./SortableStep";
 type Editor = ReturnType<typeof useScenarioEditor>;
 
 export function ScenarioSteps({ editor }: { editor: Editor }) {
-  const { isNew, draftHints, hints, busy, draftLocked, moveHint, editDraftHint, removeDraftHint, editHint, removeHint, 
-          editingDraftIndex, editingHintId, stepsCount, stepForm, setStepForm, submitHint, formError, saveHint,
+  const { isNew, draftHints, hints, busy, draftLocked, moveHint, editDraftHint, removeDraftHint, editHint, removeHint,
+          editingDraftIndex, editingHintId, stepsCount, stepForm, setStepForm, submitHint, saveHint, stepErrors, setStepErrors,
           reorderHints, isPicking, pick, setIsPicking } = editor;
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -105,57 +105,63 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
             </h2>
             <form className={styles.fields} onSubmit={submitHint}>
               <label>
-                Название шага
+                <div className={styles.fieldHeader}>
+                  <span>Название шага</span>
+                  {stepErrors.title && (<span className={styles.fieldError} role="alert">{stepErrors.title}</span>)}
+                </div>
                 <input
                   value={stepForm.title}
-                  onChange={(e) =>
-                    setStepForm((form) => ({
-                      ...form,
-                      title: e.target.value,
-                    }))
-                  }
+                  className={stepErrors.title ? styles.inputError : ""}
+                  aria-invalid={Boolean(stepErrors.title)}
+                  onChange={(e) => {setStepForm((prev) => ({...prev, title: e.target.value}));
+                    setStepErrors((prev) => ({ ...prev, title: undefined }));}}
                   placeholder="Создать первое объявление"
                 />
               </label>
               <label>
-                Текст подсказки
+                <div className={styles.fieldHeader}>
+                  <span>Текст подсказки</span>
+                  {stepErrors.content && (<span className={styles.fieldError} role="alert">{stepErrors.content}</span>)}
+                </div>
                 <textarea
                   value={stepForm.content}
-                  onChange={(e) =>
-                    setStepForm((form) => ({
-                      ...form,
-                      content: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => {setStepForm((form) => ({...form, content: e.target.value}));
+                    setStepErrors((prev) => ({ ...prev, content: undefined }));}}
                   placeholder="Для того, чтобы создать свое первое объявление нажмите сюда..."
+                  className={stepErrors.content ? styles.inputError : ""}
                 />
               </label>
               <div className={styles.selectorField}>
-                <label htmlFor="hint-selector">Элемент сайта</label>
+                <div className={styles.fieldHeader}>
+                  <label htmlFor="hint-selector">Элемент сайта</label>
+                  {stepErrors.selector && (<span className={styles.fieldError} role="alert">{stepErrors.selector}</span>)}
+                </div>
+
                 <div className={styles.selectorRow}>
                   <input
                     id="hint-selector"
                     type="text"
                     placeholder="[data-onboarding='create-ad']"
                     value={stepForm.selector}
-                    onChange={(e) =>
-                      setStepForm((prev) => ({
-                        ...prev,
-                        selector: e.target.value,
-                      }))
-                    }
+                    className={stepErrors.selector ? styles.inputError : ""}
+                    aria-invalid={Boolean(stepErrors.selector)}
+                    onChange={(e) => {setStepForm((prev) => ({...prev, selector: e.target.value}));
+                      setStepErrors((prev) => ({...prev, selector: undefined}));}}
                   />
-
                   <button type="button" className={styles.pickButton} onClick={() => setIsPicking(true)}>
                     Выбрать
                   </button>
                 </div>
               </div>
               <label>
-                Расположение подсказки
+                <div className={styles.fieldHeader}>
+                  <span>Расположение подсказки</span>
+                  {stepErrors.placement && (<span className={styles.fieldError} role="alert">{stepErrors.placement}</span>)}
+                </div>
                 <Select
                   value={stepForm.placement}
-                  onChange={(value) => setStepForm((prev) => ({ ...prev, placement: value as HintPlacement }))}
+                  onChange={(value) => {setStepForm((prev) => ({ ...prev, placement: value as HintPlacement }));
+                    setStepErrors((prev) => ({...prev, placement: undefined}));}}
                   className={styles.select}
                   options={[
                     { value: "top", label: "Сверху" },
@@ -168,8 +174,6 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
                     ]}
                 />
               </label>
-
-              {formError && <p role="alert">{formError}</p>}
               {saveHint.isError && (<p role="alert">Не удалось сохранить шаг.</p>)}
               {removeHint.isError && (<p role="alert">Не удалось удалить шаг.</p>)}
               {reorderHints.isError && (<p role="alert">Не удалось поменять порядок.</p>)}

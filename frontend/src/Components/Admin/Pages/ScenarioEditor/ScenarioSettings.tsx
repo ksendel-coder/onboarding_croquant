@@ -11,18 +11,28 @@ export function ScenarioSettings({ editor }: { editor: Editor }) {
     const [showOnce, setShowOnce] = useState(true);
     const [onlyNewUsers, setOnlyNewUsers] = useState(false);
     const [maxCount, setMaxCount] = useState("");
-    const { scenario, setScenario, isNew, saveScenario } = editor;
+    const { scenario, setScenario, isNew, submitScenario } = editor;
 
   return (
         <section className={styles.card}>
-          <form className={styles.fields} onSubmit={(event) => {event.preventDefault(); saveScenario.mutate();}}>
+          <form className={styles.fields} onSubmit={(event) => {event.preventDefault(); submitScenario();}}>
             <label>
-              Название сценария
+              <div className={styles.fieldHeader}>
+                <span>Название сценария</span>
+                {editor.scenarioErrors.name && (
+                  <span className={styles.fieldError} role="alert">
+                    {editor.scenarioErrors.name}
+                  </span>
+                )}
+              </div>
               <input
-                required
-                value={scenario.name}
-                onChange={(e) => setScenario((prev) => ({ ...prev, name: e.target.value }))}
+                value={editor.scenario.name}
+                className={editor.scenarioErrors.name ? styles.inputError : ""}
+                aria-invalid={Boolean(editor.scenarioErrors.name)}
                 placeholder="Например: Первое объявление"
+                onChange={(e) => {editor.setScenario((prev) => ({...prev, name: e.target.value}));
+                  editor.setScenarioErrors((prev) => ({...prev, name: undefined}));
+                }}
               />
             </label>
             <label>

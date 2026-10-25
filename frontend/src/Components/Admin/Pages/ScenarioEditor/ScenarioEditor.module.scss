@@ -274,7 +274,7 @@
   align-items: center;
   gap: 14px;
   padding: 16px;
-  border: 1px solid #e3e6f4;
+  border: 1.5px solid #94a3b8;
   border-radius: 14px;
   background: #fff;
   touch-action: manipulation;
@@ -298,11 +298,11 @@
   border: none;
   background: transparent;
   color: #6568f1;
-  cursor: default;
+  cursor: pointer;
   touch-action: none;
 
   &:active {
-    cursor: default;
+    cursor: pointer;
   }
 
   &:hover {
@@ -364,5 +364,32 @@
     &:hover:not(:disabled) {
       background: #fef2f2;
     }
+  }
+}
+
+.fieldHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fieldError {
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.fields input.inputError,
+.fields textarea.inputError,
+.selectorRow input.inputError {
+  border: 2px solid #ef4444;
+  background: #fffafa;
+
+  &:focus {
+    outline: none;
+    border-color: #dc2626;
   }
 }

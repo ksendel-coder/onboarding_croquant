@@ -40,8 +40,19 @@ export function useScenario(tourId: string | undefined, uploadDraftHints: (id: s
     priority: tourQuery.data?.priority ?? 0,
   };
 
+  const [scenarioErrors, setScenarioErrors] = useState<{name?: string;}>({});
+
   const setScenario = (updater: (prev: typeof scenario) => typeof scenario) => {
     setEditedScenario((prev) => updater(prev ?? scenario));
+  };
+
+  const submitScenario = () => {
+    if (!scenario.name.trim()) {
+      setScenarioErrors({ name: "Введите название сценария"});
+      return;
+    }
+      setScenarioErrors({});
+      saveScenario.mutate();
   };
 
   const saveScenario = useMutation({
@@ -85,5 +96,5 @@ export function useScenario(tourId: string | undefined, uploadDraftHints: (id: s
   });
 
   return { navigate, isNew, tourId, scenario, setScenario, saveError, saveScenario, tourQuery, trigger, setTrigger, showOnce, 
-    setShowOnce, onlyNewUsers, setOnlyNewUsers, maxCount, setMaxCount };
+    setShowOnce, onlyNewUsers, setOnlyNewUsers, maxCount, setMaxCount, scenarioErrors, setScenarioErrors, submitScenario };
 }
