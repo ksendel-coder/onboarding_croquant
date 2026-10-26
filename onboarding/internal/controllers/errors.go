@@ -5,5 +5,6 @@ import (
 )
 
 var (
-	errMissingAppId = errors.New("appId query parameter is required")
+	errMissingAppId  = errors.New("appId query parameter is required")
+	errMissingAppKey = errors.New("X-App-Key header is required")
 )
