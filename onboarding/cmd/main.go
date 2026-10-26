@@ -60,7 +60,11 @@ func main() {
 
 	hintController := controllers.NewHintController(hintDomain)
 
-	runtimeDomain := domains.NewRuntimeDomain(tourRepo, runtimeRepo)
+	runtimeDomain := domains.NewRuntimeDomain(
+		tourRepo,
+		hintRepo,
+		runtimeRepo,
+	)
 
 	srvLogger := logger.New(cfg.GetLoggerConfig("server").Level)
 

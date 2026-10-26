@@ -11,6 +11,7 @@ import (
 type (
 	RuntimeDomain struct {
 		tours   TourRepositoryInterface
+		hints   HintRepositoryInterface
 		runtime RuntimeRepositoryInterface
 	}
 
@@ -56,10 +57,12 @@ type (
 
 func NewRuntimeDomain(
 	tours TourRepositoryInterface,
+	hints HintRepositoryInterface,
 	runtime RuntimeRepositoryInterface,
 ) *RuntimeDomain {
 	return &RuntimeDomain{
 		tours:   tours,
+		hints:   hints,
 		runtime: runtime,
 	}
 }
@@ -174,6 +177,16 @@ func (rd *RuntimeDomain) startScenario(
 	tour *Tour,
 	current *Progress,
 ) (*ResolveResult, error) {
+	hints, err := rd.hints.ListByVersion(
+		ctx,
+		tour.VersionId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	tour.Hints = hints
+
 	now := time.Now().UTC()
 
 	switch {
@@ -203,6 +216,12 @@ func (rd *RuntimeDomain) startScenario(
 		current.ShowsCount++
 	}
 
+	if current.Status == ProgressInProgress &&
+		current.CurrentHintId == nil &&
+		len(hints) > 0 {
+		current.CurrentHintId = &hints[0].Id
+	}
+
 	if err := rd.runtime.UpsertProgress(
 		ctx,
 		current,
@@ -214,7 +233,7 @@ func (rd *RuntimeDomain) startScenario(
 		Tour:          tour,
 		TourVersionId: tour.VersionId,
 		Version:       tour.Version,
-		CurrentHintId: nil,
+		CurrentHintId: current.CurrentHintId,
 	}, nil
 }
 
