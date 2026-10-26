@@ -103,6 +103,7 @@ func TestRuntimeResolveReturnsPublishedEnabledTourWithHints(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result.Tour.Hints, 2)
+	assert.Equal(t, 2, result.Tour.StepsCount)
 	assert.Equal(t, firstHintId, result.Tour.Hints[0].Id)
 	assert.Equal(t, secondHintId, result.Tour.Hints[1].Id)
 	require.NotNil(t, result.CurrentHintId)

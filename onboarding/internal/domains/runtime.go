@@ -190,6 +190,7 @@ func (rd *RuntimeDomain) startScenario(
 	}
 
 	tour.Hints = hints
+	tour.StepsCount = len(hints)
 
 	now := time.Now().UTC()
 
