@@ -3,6 +3,8 @@ package server
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/controllers"
+	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/domains"
+	appmw "github.com/ksendel-coder/onboarding_croquant/onboarding/internal/middlewares"
 	"github.com/ksendel-coder/onboarding_croquant/platform/config"
 	"github.com/ksendel-coder/onboarding_croquant/platform/middlewares"
 	"github.com/ksendel-coder/onboarding_croquant/platform/serve"
@@ -11,6 +13,7 @@ import (
 
 type CreateStruct struct {
 	Logger            *zerolog.Logger
+	RuntimeDomain     domains.RuntimeDomainInterface
 	RuntimeController controllers.RuntimeControllerInterface
 	TourController    controllers.TourControllerInterface
 	HintController    controllers.HintControllerInterface
@@ -33,6 +36,20 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 		v1.POST("/apps", createStruct.RuntimeController.CreateApp)
 		v1.GET("/apps", createStruct.RuntimeController.ListApps)
 		v1.PATCH("/apps/:appId", createStruct.RuntimeController.UpdateApp)
+
+		runtime := v1.Group("")
+		{
+			runtime.Use(
+				appmw.AppKeyAuth(
+					createStruct.RuntimeDomain,
+				),
+			)
+
+			runtime.POST(
+				"/resolve",
+				createStruct.RuntimeController.Resolve,
+			)
+		}
 
 		tours := v1.Group("/tours")
 		{

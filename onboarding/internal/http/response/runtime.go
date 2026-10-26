@@ -21,6 +21,13 @@ type Health struct {
 	DB     string `json:"db" example:"ok"`
 }
 
+type ResolveResult struct {
+	Tour          *Tour      `json:"tour"`
+	TourVersionId uuid.UUID  `json:"tour_version_id" format:"uuid"`
+	Version       int        `json:"version" example:"1"`
+	CurrentHintId *uuid.UUID `json:"current_hint_id,omitempty" format:"uuid"`
+}
+
 func NewApp(a *domains.App) *App {
 	if a == nil {
 		return nil
@@ -47,4 +54,19 @@ func NewApps(apps []*domains.App) []*App {
 	}
 
 	return out
+}
+
+func NewResolveResult(
+	r *domains.ResolveResult,
+) *ResolveResult {
+	if r == nil {
+		return nil
+	}
+
+	return &ResolveResult{
+		Tour:          NewTour(r.Tour),
+		TourVersionId: r.TourVersionId,
+		Version:       r.Version,
+		CurrentHintId: r.CurrentHintId,
+	}
 }

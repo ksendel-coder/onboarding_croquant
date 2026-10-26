@@ -67,6 +67,7 @@ type Tour struct {
 
 	TargetPath string
 	Audience   *Audience
+	Hints      []Hint
 	StepsCount int `json:"steps_count"`
 }
 

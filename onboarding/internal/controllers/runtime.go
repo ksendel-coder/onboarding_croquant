@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/domains"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/http/request"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/http/response"
@@ -20,6 +21,7 @@ type (
 		CreateApp(ctx *gin.Context)
 		ListApps(ctx *gin.Context)
 		UpdateApp(ctx *gin.Context)
+		Resolve(ctx *gin.Context)
 	}
 )
 
@@ -91,6 +93,62 @@ func (rc *RuntimeController) ListApps(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response.NewApps(apps))
 }
 
+// Resolve godoc
+//
+// @Summary        Resolve an onboarding scenario
+// @Description    Returns the first matching published scenario and its steps
+// @Tags           Runtime
+// @Accept         json
+// @Produce        json
+// @Param          X-App-Key header string true "Application public key"
+// @Param          body body request.ResolveRequest true "Resolve context"
+// @Success        200 {object} response.ResolveResult
+// @Success        204
+// @Failure        400 {object} errs.HTTPError
+// @Failure        401 {object} errs.HTTPError
+// @Router         /resolve [post]
+func (rc *RuntimeController) Resolve(
+	ctx *gin.Context,
+) {
+	appId, err := appIdFromContext(ctx)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	body := new(request.ResolveRequest)
+
+	if err := ctx.ShouldBindJSON(body); err != nil {
+		ctx.Error(
+			&errs.BindingError{
+				Err:  err,
+				Zone: errs.Body,
+				Code: http.StatusBadRequest,
+			},
+		)
+		return
+	}
+
+	result, err := rc.domain.Resolve(
+		ctx.Request.Context(),
+		body.ToDomain(appId),
+	)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	if result == nil {
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		response.NewResolveResult(result),
+	)
+}
+
 // UpdateApp godoc
 //
 // @Summary        Update an application
@@ -129,4 +187,28 @@ func (rc *RuntimeController) UpdateApp(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, response.NewApp(updated))
+}
+
+func appIdFromContext(
+	ctx *gin.Context,
+) (uuid.UUID, error) {
+	value, ok := ctx.Get("app_id")
+
+	if !ok {
+		return uuid.Nil, &errs.PermissionError{
+			Err:  errMissingAppKey,
+			Code: http.StatusUnauthorized,
+		}
+	}
+
+	appId, ok := value.(uuid.UUID)
+
+	if !ok {
+		return uuid.Nil, &errs.PermissionError{
+			Err:  errMissingAppKey,
+			Code: http.StatusUnauthorized,
+		}
+	}
+
+	return appId, nil
 }
