@@ -153,6 +153,10 @@ func (rd *RuntimeDomain) Resolve(
 	path := PathFromURL(req.Url)
 
 	for _, tour := range candidates {
+		if !tour.Enabled || tour.Status != TourPublished {
+			continue
+		}
+
 		if !MatchPath(
 			tour.TargetPath,
 			path,
