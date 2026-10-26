@@ -72,6 +72,7 @@ func main() {
 
 	srv := server.NewServer(cfg.ServerConfig, &server.CreateStruct{
 		Logger:            srvLogger,
+		RuntimeDomain:     runtimeDomain,
 		RuntimeController: runtimeController,
 		TourController:    tourController,
 		HintController:    hintController,
