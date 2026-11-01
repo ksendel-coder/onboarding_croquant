@@ -59,6 +59,7 @@ func newEventTestServer(
 			RuntimeController: controllers.NewRuntimeController(runtimeDomain),
 			TourController:    controllers.NewTourController(nil),
 			HintController:    controllers.NewHintController(nil),
+			AuthController:    controllers.NewAuthController(nil),
 			EventController:   controllers.NewEventController(eventDomain),
 		},
 	)

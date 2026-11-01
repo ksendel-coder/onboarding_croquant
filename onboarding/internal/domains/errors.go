@@ -61,6 +61,14 @@ var (
 	ErrReorderMismatch    = errors.New("reorder ids do not match existing tour hints")
 	ErrVersionImmutable   = errors.New("published and archived versions cannot be edited")
 	ErrNoDraft            = errors.New("tour has no draft to work with")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrEmailRequired      = errors.New("email is required")
+	ErrInvalidEmail       = errors.New("invalid email")
+	ErrPasswordTooShort   = errors.New("password must contain at least 8 characters")
+	ErrInvalidCredentials = errors.New("invalid email or password")
+	ErrSessionNotFound    = errors.New("session not found")
+	ErrUnauthorized       = errors.New("authentication required")
+	ErrAccessDenied       = errors.New("access denied")
 )
 
 // Helpers

@@ -29,17 +29,137 @@ func (rr *RuntimeRepository) Ping(ctx context.Context) error {
 	return rr.pool.Ping(ctx)
 }
 
-func (rr *RuntimeRepository) CreateApp(ctx context.Context, a *domains.App) error {
-	err := rr.pool.QueryRow(ctx, `
-		INSERT INTO apps (name, public_key, allowed_origins)
+func (rr *RuntimeRepository) CreateApp(
+	ctx context.Context,
+	userId uuid.UUID,
+	a *domains.App,
+) error {
+	tx, err := rr.pool.Begin(ctx)
+	if err != nil {
+		return wrap(
+			err,
+			domains.ErrAppNotFound,
+			a.PublicKey,
+			errs.Create,
+		)
+	}
+	defer tx.Rollback(ctx)
+
+	err = tx.QueryRow(ctx, `
+		INSERT INTO apps (
+			name,
+			public_key,
+			allowed_origins
+		)
 		VALUES ($1, $2, $3)
 		RETURNING id, created_at`,
 		a.Name,
 		a.PublicKey,
 		a.AllowedOrigins,
-	).Scan(&a.Id, &a.CreatedAt)
+	).Scan(
+		&a.Id,
+		&a.CreatedAt,
+	)
+	if err != nil {
+		return wrap(
+			err,
+			domains.ErrAppNotFound,
+			a.PublicKey,
+			errs.Create,
+		)
+	}
 
-	return wrap(err, domains.ErrAppNotFound, a.PublicKey, errs.Create)
+	_, err = tx.Exec(ctx, `
+		INSERT INTO user_apps (
+			user_id,
+			app_id
+		)
+		VALUES ($1, $2)`,
+		userId,
+		a.Id,
+	)
+	if err != nil {
+		return wrap(
+			err,
+			domains.ErrAppNotFound,
+			a.Id.String(),
+			errs.Create,
+		)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return wrap(
+			err,
+			domains.ErrAppNotFound,
+			a.Id.String(),
+			errs.Create,
+		)
+	}
+
+	return nil
+}
+
+func (rr *RuntimeRepository) ListApps(
+	ctx context.Context,
+	userId uuid.UUID,
+) ([]*domains.App, error) {
+	rows, err := rr.pool.Query(ctx, `
+		SELECT
+			a.id,
+			a.name,
+			a.public_key,
+			a.allowed_origins,
+			a.created_at,
+			a.archived_at
+		FROM apps a
+		JOIN user_apps ua
+		  ON ua.app_id = a.id
+		WHERE ua.user_id = $1
+		  AND a.archived_at IS NULL
+		ORDER BY a.created_at`,
+		userId,
+	)
+	if err != nil {
+		return nil, wrap(
+			err,
+			domains.ErrAppNotFound,
+			userId.String(),
+			errs.Retrieve,
+		)
+	}
+	defer rows.Close()
+
+	apps := make(
+		[]*domains.App,
+		0,
+	)
+
+	for rows.Next() {
+		a := new(domains.App)
+
+		if err := rows.Scan(
+			&a.Id,
+			&a.Name,
+			&a.PublicKey,
+			&a.AllowedOrigins,
+			&a.CreatedAt,
+			&a.ArchivedAt,
+		); err != nil {
+			return nil, wrap(
+				err,
+				domains.ErrAppNotFound,
+				userId.String(),
+				errs.Retrieve,
+			)
+		}
+
+		apps = append(
+			apps,
+			a,
+		)
+	}
+
+	return apps, rows.Err()
 }
 
 func (rr *RuntimeRepository) AppByKey(ctx context.Context, key string) (*domains.App, error) {
@@ -176,40 +296,103 @@ func (rr *RuntimeRepository) UpsertProgress(
 
 func (rr *RuntimeRepository) UpdateApp(
 	ctx context.Context,
+	userId uuid.UUID,
 	id uuid.UUID,
 	name *string,
 	allowedOrigins []string,
 ) (*domains.App, error) {
-	set := make([]string, 0, 2)
-	args := make([]any, 0, 3)
+	set := make(
+		[]string,
+		0,
+		2,
+	)
+	args := make(
+		[]any,
+		0,
+		4,
+	)
 
 	if name != nil {
-		args = append(args, *name)
-		set = append(set, fmt.Sprintf("name = $%d", len(args)))
+		args = append(
+			args,
+			*name,
+		)
+		set = append(
+			set,
+			fmt.Sprintf(
+				"name = $%d",
+				len(args),
+			),
+		)
 	}
 
 	if allowedOrigins != nil {
-		args = append(args, allowedOrigins)
-		set = append(set, fmt.Sprintf("allowed_origins = $%d", len(args)))
+		args = append(
+			args,
+			allowedOrigins,
+		)
+		set = append(
+			set,
+			fmt.Sprintf(
+				"allowed_origins = $%d",
+				len(args),
+			),
+		)
 	}
 
 	if len(set) == 0 {
-		return rr.AppByKey(ctx, "")
+		return rr.appByIdForUser(
+			ctx,
+			userId,
+			id,
+		)
 	}
 
-	args = append(args, id)
+	args = append(
+		args,
+		id,
+	)
+	appIdPosition := len(args)
+
+	args = append(
+		args,
+		userId,
+	)
+	userIdPosition := len(args)
 
 	query := fmt.Sprintf(`
-		UPDATE apps SET %s
-		WHERE id = $%d AND archived_at IS NULL
-		RETURNING id, name, public_key, allowed_origins, created_at, archived_at`,
-		strings.Join(set, ", "),
-		len(args),
+		UPDATE apps
+		SET %s
+		WHERE id = $%d
+		  AND archived_at IS NULL
+		  AND EXISTS (
+			SELECT 1
+			FROM user_apps ua
+			WHERE ua.app_id = apps.id
+			  AND ua.user_id = $%d
+		  )
+		RETURNING
+			id,
+			name,
+			public_key,
+			allowed_origins,
+			created_at,
+			archived_at`,
+		strings.Join(
+			set,
+			", ",
+		),
+		appIdPosition,
+		userIdPosition,
 	)
 
 	a := new(domains.App)
 
-	err := rr.pool.QueryRow(ctx, query, args...).Scan(
+	err := rr.pool.QueryRow(
+		ctx,
+		query,
+		args...,
+	).Scan(
 		&a.Id,
 		&a.Name,
 		&a.PublicKey,
@@ -219,43 +402,57 @@ func (rr *RuntimeRepository) UpdateApp(
 	)
 
 	if err != nil {
-		return nil, wrap(err, domains.ErrAppNotFound, id.String(), errs.Update)
+		return nil, wrap(
+			err,
+			domains.ErrAppNotFound,
+			id.String(),
+			errs.Update,
+		)
 	}
 
 	return a, nil
 }
 
-func (rr *RuntimeRepository) ListApps(ctx context.Context) ([]*domains.App, error) {
-	rows, err := rr.pool.Query(ctx, `
-		SELECT id, name, public_key, allowed_origins, created_at, archived_at
-		FROM apps
-		WHERE archived_at IS NULL
-		ORDER BY created_at`)
+func (rr *RuntimeRepository) appByIdForUser(
+	ctx context.Context,
+	userId uuid.UUID,
+	appId uuid.UUID,
+) (*domains.App, error) {
+	a := new(domains.App)
+
+	err := rr.pool.QueryRow(ctx, `
+		SELECT
+			a.id,
+			a.name,
+			a.public_key,
+			a.allowed_origins,
+			a.created_at,
+			a.archived_at
+		FROM apps a
+		JOIN user_apps ua
+		  ON ua.app_id = a.id
+		WHERE a.id = $1
+		  AND ua.user_id = $2
+		  AND a.archived_at IS NULL`,
+		appId,
+		userId,
+	).Scan(
+		&a.Id,
+		&a.Name,
+		&a.PublicKey,
+		&a.AllowedOrigins,
+		&a.CreatedAt,
+		&a.ArchivedAt,
+	)
 
 	if err != nil {
-		return nil, wrap(err, domains.ErrAppNotFound, "", errs.Retrieve)
+		return nil, wrap(
+			err,
+			domains.ErrAppNotFound,
+			appId.String(),
+			errs.Retrieve,
+		)
 	}
 
-	defer rows.Close()
-
-	apps := make([]*domains.App, 0)
-
-	for rows.Next() {
-		a := new(domains.App)
-
-		if err := rows.Scan(
-			&a.Id,
-			&a.Name,
-			&a.PublicKey,
-			&a.AllowedOrigins,
-			&a.CreatedAt,
-			&a.ArchivedAt,
-		); err != nil {
-			return nil, wrap(err, domains.ErrAppNotFound, "", errs.Retrieve)
-		}
-
-		apps = append(apps, a)
-	}
-
-	return apps, rows.Err()
+	return a, nil
 }

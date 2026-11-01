@@ -55,13 +55,19 @@ func main() {
 	eventDomain := domains.NewEventDomain(eventRepo)
 	eventController := controllers.NewEventController(eventDomain)
 
+	authRepo := repositories.NewAuthRepository(pool, defaultLogger)
+
 	tourDomain := domains.NewTourDomain(tourRepo)
 
 	hintDomain := domains.NewHintDomain(tourRepo, hintRepo)
 
+	authDomain := domains.NewAuthDomain(authRepo)
+
 	tourController := controllers.NewTourController(tourDomain)
 
 	hintController := controllers.NewHintController(hintDomain)
+
+	authController := controllers.NewAuthController(authDomain)
 
 	runtimeDomain := domains.NewRuntimeDomain(
 		tourRepo,
@@ -79,6 +85,8 @@ func main() {
 		RuntimeController: runtimeController,
 		TourController:    tourController,
 		HintController:    hintController,
+		AuthDomain:        authDomain,
+		AuthController:    authController,
 		EventController:   eventController,
 	})
 

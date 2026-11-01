@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/controllers"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/domains"
-	appmw "github.com/ksendel-coder/onboarding_croquant/onboarding/internal/middlewares"
+	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/middlewares"
 	"github.com/ksendel-coder/onboarding_croquant/platform/config"
-	"github.com/ksendel-coder/onboarding_croquant/platform/middlewares"
+	platformmw "github.com/ksendel-coder/onboarding_croquant/platform/middlewares"
 	"github.com/ksendel-coder/onboarding_croquant/platform/serve"
 	"github.com/rs/zerolog"
 )
@@ -17,6 +17,8 @@ type CreateStruct struct {
 	RuntimeController controllers.RuntimeControllerInterface
 	TourController    controllers.TourControllerInterface
 	HintController    controllers.HintControllerInterface
+	AuthDomain        domains.AuthDomainInterface
+	AuthController    controllers.AuthControllerInterface
 	EventController   *controllers.EventController
 }
 
@@ -27,21 +29,40 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 	router.Use(
 		gin.Logger(),
 		gin.Recovery(),
-		middlewares.RuntimeCORS(),
-		middlewares.ErrorHandler(createStruct.Logger),
+		platformmw.RuntimeCORS(),
+		platformmw.ErrorHandler(createStruct.Logger),
 	)
 
 	v1 := router.Group("/v1")
 	{
 		v1.GET("/health", createStruct.RuntimeController.Health)
-		v1.POST("/apps", createStruct.RuntimeController.CreateApp)
-		v1.GET("/apps", createStruct.RuntimeController.ListApps)
-		v1.PATCH("/apps/:appId", createStruct.RuntimeController.UpdateApp)
+		apps := v1.Group("/apps")
+		apps.Use(
+			middlewares.AdminAuth(
+				createStruct.AuthDomain,
+			),
+		)
+		{
+			apps.POST(
+				"",
+				createStruct.RuntimeController.CreateApp,
+			)
+
+			apps.GET(
+				"",
+				createStruct.RuntimeController.ListApps,
+			)
+
+			apps.PATCH(
+				"/:appId",
+				createStruct.RuntimeController.UpdateApp,
+			)
+		}
 
 		runtime := v1.Group("")
 		{
 			runtime.Use(
-				appmw.AppKeyAuth(
+				middlewares.AppKeyAuth(
 					createStruct.RuntimeDomain,
 				),
 			)
@@ -54,21 +75,101 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 		}
 
 		tours := v1.Group("/tours")
+		tours.Use(
+			middlewares.AdminAuth(
+				createStruct.AuthDomain,
+			),
+		)
 		{
-			tours.POST("", createStruct.TourController.Create)
-			tours.GET("", createStruct.TourController.List)
+			tours.POST(
+				"",
+				middlewares.RequireAppAccess(
+					createStruct.AuthDomain,
+				),
+				createStruct.TourController.Create,
+			)
+
+			tours.GET(
+				"",
+				middlewares.RequireAppAccess(
+					createStruct.AuthDomain,
+				),
+				createStruct.TourController.List,
+			)
 
 			tourID := tours.Group("/:tourId")
+			tourID.Use(
+				middlewares.RequireTourAccess(
+					createStruct.AuthDomain,
+				),
+			)
 			{
-				tourID.PATCH("", createStruct.TourController.UpdateMeta)
-				tourID.DELETE("", createStruct.TourController.Archive)
+				tourID.PATCH(
+					"",
+					createStruct.TourController.UpdateMeta,
+				)
 
-				tourID.POST("/hints", createStruct.HintController.Create)
-				tourID.GET("/hints", createStruct.HintController.List)
-				tourID.PATCH("/hints/:hintId", createStruct.HintController.Update)
-				tourID.DELETE("/hints/:hintId", createStruct.HintController.Delete)
-				tourID.PUT("/hints/order", createStruct.HintController.Reorder)
+				tourID.DELETE(
+					"",
+					createStruct.TourController.Archive,
+				)
+
+				tourID.POST(
+					"/hints",
+					createStruct.HintController.Create,
+				)
+
+				tourID.GET(
+					"/hints",
+					createStruct.HintController.List,
+				)
+
+				tourID.PATCH(
+					"/hints/:hintId",
+					createStruct.HintController.Update,
+				)
+
+				tourID.DELETE(
+					"/hints/:hintId",
+					createStruct.HintController.Delete,
+				)
+
+				tourID.PUT(
+					"/hints/order",
+					createStruct.HintController.Reorder,
+				)
 			}
+		}
+	}
+
+	auth := v1.Group("/auth")
+	{
+		auth.POST(
+			"/register",
+			createStruct.AuthController.Register,
+		)
+
+		auth.POST(
+			"/login",
+			createStruct.AuthController.Login,
+		)
+
+		protectedAuth := auth.Group("")
+		protectedAuth.Use(
+			middlewares.AdminAuth(
+				createStruct.AuthDomain,
+			),
+		)
+		{
+			protectedAuth.GET(
+				"/me",
+				createStruct.AuthController.Me,
+			)
+
+			protectedAuth.POST(
+				"/logout",
+				createStruct.AuthController.Logout,
+			)
 		}
 	}
 

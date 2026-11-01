@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS admin_sessions;
+DROP TABLE IF EXISTS user_apps;
+DROP TABLE IF EXISTS users;
