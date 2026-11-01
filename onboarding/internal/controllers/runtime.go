@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/domains"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/http/request"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/http/response"
@@ -58,22 +57,50 @@ func (rc *RuntimeController) Health(ctx *gin.Context) {
 // @Success        201 {object} response.App
 // @Failure        400 {object} errs.HTTPError
 // @Router         /apps [post]
-func (rc *RuntimeController) CreateApp(ctx *gin.Context) {
-	body := new(request.CreateAppRequest)
-
-	if err := ctx.ShouldBindJSON(body); err != nil {
-		ctx.Error(&errs.BindingError{Err: err, Zone: errs.Body, Code: http.StatusBadRequest})
-		return
-	}
-
-	created, err := rc.domain.CreateApp(ctx.Request.Context(), body.ToDomain())
+func (rc *RuntimeController) CreateApp(
+	ctx *gin.Context,
+) {
+	userId, err := currentUserId(
+		ctx,
+	)
 	if err != nil {
 		ctx.Error(err)
 		return
 	}
 
-	ctx.Header("Location", "/v1/apps/"+created.Id.String())
-	ctx.JSON(http.StatusCreated, response.NewApp(created))
+	body := new(request.CreateAppRequest)
+
+	if err := ctx.ShouldBindJSON(
+		body,
+	); err != nil {
+		ctx.Error(
+			&errs.BindingError{
+				Err:  err,
+				Zone: errs.Body,
+				Code: http.StatusBadRequest,
+			},
+		)
+		return
+	}
+
+	created, err := rc.domain.CreateApp(
+		ctx.Request.Context(),
+		userId,
+		body.ToDomain(),
+	)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	ctx.Header(
+		"Location",
+		"/v1/apps/"+created.Id.String(),
+	)
+	ctx.JSON(
+		http.StatusCreated,
+		response.NewApp(created),
+	)
 }
 
 // ListApps godoc
@@ -83,14 +110,30 @@ func (rc *RuntimeController) CreateApp(ctx *gin.Context) {
 // @Produce        json
 // @Success        200 {array} response.App
 // @Router         /apps [get]
-func (rc *RuntimeController) ListApps(ctx *gin.Context) {
-	apps, err := rc.domain.ListApps(ctx.Request.Context())
+func (rc *RuntimeController) ListApps(
+	ctx *gin.Context,
+) {
+	userId, err := currentUserId(
+		ctx,
+	)
 	if err != nil {
 		ctx.Error(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.NewApps(apps))
+	apps, err := rc.domain.ListApps(
+		ctx.Request.Context(),
+		userId,
+	)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		response.NewApps(apps),
+	)
 }
 
 // Resolve godoc
@@ -161,8 +204,21 @@ func (rc *RuntimeController) Resolve(
 // @Failure        400 {object} errs.HTTPError
 // @Failure        404 {object} errs.HTTPError
 // @Router         /apps/{appId} [patch]
-func (rc *RuntimeController) UpdateApp(ctx *gin.Context) {
-	appId, err := pathUUID(ctx, "appId")
+func (rc *RuntimeController) UpdateApp(
+	ctx *gin.Context,
+) {
+	userId, err := currentUserId(
+		ctx,
+	)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	appId, err := pathUUID(
+		ctx,
+		"appId",
+	)
 	if err != nil {
 		ctx.Error(err)
 		return
@@ -170,13 +226,22 @@ func (rc *RuntimeController) UpdateApp(ctx *gin.Context) {
 
 	body := new(request.UpdateAppRequest)
 
-	if err := ctx.ShouldBindJSON(body); err != nil {
-		ctx.Error(&errs.BindingError{Err: err, Zone: errs.Body, Code: http.StatusBadRequest})
+	if err := ctx.ShouldBindJSON(
+		body,
+	); err != nil {
+		ctx.Error(
+			&errs.BindingError{
+				Err:  err,
+				Zone: errs.Body,
+				Code: http.StatusBadRequest,
+			},
+		)
 		return
 	}
 
 	updated, err := rc.domain.UpdateApp(
 		ctx.Request.Context(),
+		userId,
 		appId,
 		body.Name,
 		body.AllowedOrigins,
@@ -186,29 +251,8 @@ func (rc *RuntimeController) UpdateApp(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.NewApp(updated))
-}
-
-func appIdFromContext(
-	ctx *gin.Context,
-) (uuid.UUID, error) {
-	value, ok := ctx.Get("app_id")
-
-	if !ok {
-		return uuid.Nil, &errs.PermissionError{
-			Err:  errMissingAppKey,
-			Code: http.StatusUnauthorized,
-		}
-	}
-
-	appId, ok := value.(uuid.UUID)
-
-	if !ok {
-		return uuid.Nil, &errs.PermissionError{
-			Err:  errMissingAppKey,
-			Code: http.StatusUnauthorized,
-		}
-	}
-
-	return appId, nil
+	ctx.JSON(
+		http.StatusOK,
+		response.NewApp(updated),
+	)
 }

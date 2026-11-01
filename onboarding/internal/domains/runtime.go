@@ -17,10 +17,18 @@ type (
 
 	RuntimeDomainInterface interface {
 		AppByKey(ctx context.Context, key string) (*App, error)
-		CreateApp(ctx context.Context, app *App) (*App, error)
-		ListApps(ctx context.Context) ([]*App, error)
+		CreateApp(
+			ctx context.Context,
+			userId uuid.UUID,
+			app *App,
+		) (*App, error)
+		ListApps(
+			ctx context.Context,
+			userId uuid.UUID,
+		) ([]*App, error)
 		UpdateApp(
 			ctx context.Context,
+			userId uuid.UUID,
 			id uuid.UUID,
 			name *string,
 			allowedOrigins []string,
@@ -33,9 +41,16 @@ type (
 	}
 
 	RuntimeRepositoryInterface interface {
-		CreateApp(ctx context.Context, app *App) error
 		AppByKey(ctx context.Context, key string) (*App, error)
-		ListApps(ctx context.Context) ([]*App, error)
+		CreateApp(
+			ctx context.Context,
+			userId uuid.UUID,
+			app *App,
+		) error
+		ListApps(
+			ctx context.Context,
+			userId uuid.UUID,
+		) ([]*App, error)
 		SubjectProgress(
 			ctx context.Context,
 			appId uuid.UUID,
@@ -47,6 +62,7 @@ type (
 		) error
 		UpdateApp(
 			ctx context.Context,
+			userId uuid.UUID,
 			id uuid.UUID,
 			name *string,
 			allowedOrigins []string,
@@ -71,14 +87,28 @@ func (rd *RuntimeDomain) AppByKey(ctx context.Context, key string) (*App, error)
 	return rd.runtime.AppByKey(ctx, key)
 }
 
-func (rd *RuntimeDomain) CreateApp(ctx context.Context, app *App) (*App, error) {
+func (rd *RuntimeDomain) CreateApp(
+	ctx context.Context,
+	userId uuid.UUID,
+	app *App,
+) (*App, error) {
 	if app.Name == "" {
-		return nil, logicErr(ErrTitleRequired, "app validation", http.StatusBadRequest)
+		return nil, logicErr(
+			ErrTitleRequired,
+			"app validation",
+			http.StatusBadRequest,
+		)
 	}
 
-	origins, err := ValidateOrigins(app.AllowedOrigins)
+	origins, err := ValidateOrigins(
+		app.AllowedOrigins,
+	)
 	if err != nil {
-		return nil, logicErr(err, "app validation", http.StatusBadRequest)
+		return nil, logicErr(
+			err,
+			"app validation",
+			http.StatusBadRequest,
+		)
 	}
 
 	app.AllowedOrigins = origins
@@ -87,7 +117,11 @@ func (rd *RuntimeDomain) CreateApp(ctx context.Context, app *App) (*App, error) 
 		app.PublicKey = "pk_" + uuid.NewString()
 	}
 
-	if err := rd.runtime.CreateApp(ctx, app); err != nil {
+	if err := rd.runtime.CreateApp(
+		ctx,
+		userId,
+		app,
+	); err != nil {
 		return nil, err
 	}
 
@@ -96,6 +130,7 @@ func (rd *RuntimeDomain) CreateApp(ctx context.Context, app *App) (*App, error) 
 
 func (rd *RuntimeDomain) UpdateApp(
 	ctx context.Context,
+	userId uuid.UUID,
 	id uuid.UUID,
 	name *string,
 	allowedOrigins []string,
@@ -104,17 +139,36 @@ func (rd *RuntimeDomain) UpdateApp(
 
 	if allowedOrigins != nil {
 		var err error
-		normalized, err = ValidateOrigins(allowedOrigins)
+
+		normalized, err = ValidateOrigins(
+			allowedOrigins,
+		)
 		if err != nil {
-			return nil, logicErr(err, "app update", http.StatusBadRequest)
+			return nil, logicErr(
+				err,
+				"app update",
+				http.StatusBadRequest,
+			)
 		}
 	}
 
-	return rd.runtime.UpdateApp(ctx, id, name, normalized)
+	return rd.runtime.UpdateApp(
+		ctx,
+		userId,
+		id,
+		name,
+		normalized,
+	)
 }
 
-func (rd *RuntimeDomain) ListApps(ctx context.Context) ([]*App, error) {
-	return rd.runtime.ListApps(ctx)
+func (rd *RuntimeDomain) ListApps(
+	ctx context.Context,
+	userId uuid.UUID,
+) ([]*App, error) {
+	return rd.runtime.ListApps(
+		ctx,
+		userId,
+	)
 }
 
 func (rd *RuntimeDomain) Resolve(
