@@ -51,6 +51,9 @@ func main() {
 	tourRepo := repositories.NewTourRepository(pool, defaultLogger)
 
 	hintRepo := repositories.NewHintRepository(pool, defaultLogger)
+	eventRepo := repositories.NewEventRepository(pool)
+	eventDomain := domains.NewEventDomain(eventRepo)
+	eventController := controllers.NewEventController(eventDomain)
 
 	authRepo := repositories.NewAuthRepository(pool, defaultLogger)
 
@@ -84,6 +87,7 @@ func main() {
 		HintController:    hintController,
 		AuthDomain:        authDomain,
 		AuthController:    authController,
+		EventController:   eventController,
 	})
 
 	defaultLogger.Debug().Msg("Server created successfully")

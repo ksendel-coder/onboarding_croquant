@@ -63,6 +63,7 @@ func newRuntimeTestServer(
 			TourController:    controllers.NewTourController(nil),
 			HintController:    controllers.NewHintController(nil),
 			AuthController:    controllers.NewAuthController(nil),
+			EventController:   controllers.NewEventController(nil),
 		},
 	)
 

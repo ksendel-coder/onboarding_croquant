@@ -19,6 +19,7 @@ type CreateStruct struct {
 	HintController    controllers.HintControllerInterface
 	AuthDomain        domains.AuthDomainInterface
 	AuthController    controllers.AuthControllerInterface
+	EventController   *controllers.EventController
 }
 
 func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Server {
@@ -70,6 +71,7 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 				"/resolve",
 				createStruct.RuntimeController.Resolve,
 			)
+			runtime.POST("/events", createStruct.EventController.Record)
 		}
 
 		tours := v1.Group("/tours")
