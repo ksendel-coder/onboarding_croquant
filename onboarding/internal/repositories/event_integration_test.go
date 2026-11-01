@@ -139,6 +139,13 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 	created, err := repo.Record(ctx, startedOne)
 	require.NoError(t, err)
 	assert.False(t, created)
+	var repeatedEventCount int
+	require.NoError(t, pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM tour_events WHERE app_id=$1 AND event_id=$2`,
+		appId,
+		startedOne.EventId,
+	).Scan(&repeatedEventCount))
+	assert.Equal(t, 1, repeatedEventCount)
 
 	duplicateStart := startedOne
 	duplicateStart.EventId = uuid.New()
@@ -156,6 +163,33 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 	).Scan(&showsCount))
 	assert.Equal(t, 3, showsCount)
 
+	wrongAttemptEvent := newEvent(
+		subjectOne,
+		uuid.New(),
+		domains.EventHintShown,
+		&firstHintId,
+	)
+	_, err = repo.Record(ctx, wrongAttemptEvent)
+	assertLogicErrorStatus(t, err, http.StatusConflict)
+
+	wrongCurrentHintEvent := newEvent(
+		subjectOne,
+		attemptOne,
+		domains.EventHintCompleted,
+		&secondHintId,
+	)
+	_, err = repo.Record(ctx, wrongCurrentHintEvent)
+	assertLogicErrorStatus(t, err, http.StatusConflict)
+
+	prematureCompletion := newEvent(
+		subjectOne,
+		attemptOne,
+		domains.EventTourCompleted,
+		nil,
+	)
+	_, err = repo.Record(ctx, prematureCompletion)
+	assertLogicErrorStatus(t, err, http.StatusConflict)
+
 	recordCreated(newEvent(subjectOne, attemptOne, domains.EventHintShown, &firstHintId))
 	recordCreated(newEvent(subjectOne, attemptOne, domains.EventHintCompleted, &firstHintId))
 
@@ -171,6 +205,7 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 	assert.Equal(t, secondHintId, *currentHintId)
 
 	recordCreated(newEvent(subjectOne, attemptOne, domains.EventHintShown, &secondHintId))
+	recordCreated(newEvent(subjectOne, attemptOne, domains.EventHintCompleted, &secondHintId))
 	completedOne := newEvent(subjectOne, attemptOne, domains.EventTourCompleted, nil)
 	recordCreated(completedOne)
 
@@ -206,7 +241,7 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 		HintId: firstHintId, Step: 1, Shown: 2, Completed: 1, DropOff: 1,
 	}, analytics.Steps[0])
 	assert.Equal(t, domains.StepAnalytics{
-		HintId: secondHintId, Step: 2, Shown: 1, Completed: 0, DropOff: 1,
+		HintId: secondHintId, Step: 2, Shown: 1, Completed: 1, DropOff: 0,
 	}, analytics.Steps[1])
 
 	invalidHintEvent := newEvent(subjectTwo, uuid.New(), domains.EventHintShown, &foreignHintId)

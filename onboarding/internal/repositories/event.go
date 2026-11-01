@@ -39,15 +39,16 @@ func (r *EventRepository) Record(
 
 	var version uuid.UUID
 	var status string
+	var currentHintId *uuid.UUID
 	err = tx.QueryRow(ctx, `
-		SELECT p.tour_version_id, p.status
+		SELECT p.tour_version_id, p.status, p.current_hint_id
 		FROM tour_progress p
 		WHERE p.app_id=$1 AND p.subject_id=$2 AND p.tour_id=$3
 		FOR UPDATE`,
 		event.AppId,
 		event.SubjectId,
 		event.TourId,
-	).Scan(&version, &status)
+	).Scan(&version, &status, &currentHintId)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, invalidEvent("progress not found; call /resolve first", http.StatusConflict)
 	}
@@ -148,6 +149,52 @@ func (r *EventRepository) Record(
 	}
 	if sameTypeExists {
 		return false, tx.Commit(ctx)
+	}
+
+	var anotherAttempt bool
+	err = tx.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM tour_events
+			WHERE app_id=$1
+				AND subject_id=$2
+				AND tour_id=$3
+				AND tour_version_id=$4
+				AND attempt_id<>$5
+		)`,
+		event.AppId,
+		event.SubjectId,
+		event.TourId,
+		event.TourVersionId,
+		event.AttemptId,
+	).Scan(&anotherAttempt)
+	if err != nil {
+		return false, err
+	}
+	if anotherAttempt {
+		return false, invalidEvent("attempt_id does not match", http.StatusConflict)
+	}
+
+	if event.Type == domains.EventHintCompleted {
+		if currentHintId == nil || event.HintId == nil || *currentHintId != *event.HintId {
+			return false, invalidEvent("hint is not current", http.StatusConflict)
+		}
+	}
+
+	if event.Type == domains.EventTourCompleted {
+		var totalHints int
+		err = tx.QueryRow(ctx, `
+			SELECT COUNT(*)
+			FROM hints
+			WHERE tour_version_id=$1`,
+			event.TourVersionId,
+		).Scan(&totalHints)
+		if err != nil {
+			return false, err
+		}
+		if totalHints == 0 || currentHintId != nil {
+			return false, invalidEvent("scenario steps are not completed", http.StatusConflict)
+		}
 	}
 
 	_, err = tx.Exec(ctx, `
