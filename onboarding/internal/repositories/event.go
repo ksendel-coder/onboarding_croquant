@@ -59,24 +59,24 @@ func (r *EventRepository) Record(
 		return false, invalidEvent("tour version does not match progress", http.StatusConflict)
 	}
 
-	var published bool
+	var allowed bool
 	err = tx.QueryRow(ctx, `
-		SELECT (v.status='published')
-		FROM tours t
-		JOIN tour_versions v ON v.tour_id=t.id
-		WHERE t.id=$1 AND t.app_id=$2 AND v.id=$3`,
+    SELECT (v.status IN ('published', 'archived') AND v.published_at IS NOT NULL)
+    FROM tours t
+    JOIN tour_versions v ON v.tour_id = t.id
+    WHERE t.id = $1 AND t.app_id = $2 AND v.id = $3`,
 		event.TourId,
 		event.AppId,
 		event.TourVersionId,
-	).Scan(&published)
+	).Scan(&allowed)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, invalidEvent("tour or version not found", http.StatusNotFound)
 	}
 	if err != nil {
 		return false, err
 	}
-	if !published {
-		return false, invalidEvent("only published versions can receive events", http.StatusConflict)
+	if !allowed {
+		return false, invalidEvent("version has never been published", http.StatusConflict)
 	}
 
 	if event.HintId != nil {

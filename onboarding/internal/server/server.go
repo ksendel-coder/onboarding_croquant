@@ -138,6 +138,11 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 					"/hints/order",
 					createStruct.HintController.Reorder,
 				)
+
+				tourID.POST(
+					"/publish",
+					createStruct.TourController.Publish,
+				)
 			}
 		}
 	}

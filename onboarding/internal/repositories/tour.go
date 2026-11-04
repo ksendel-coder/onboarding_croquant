@@ -3,9 +3,13 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -335,4 +339,192 @@ func unmarshalJSONB(data []byte, dst any) error {
 		return fmt.Errorf("json unmarshal: %w", err)
 	}
 	return nil
+}
+
+func (tr *TourRepository) Publish(ctx context.Context, tourId uuid.UUID) (*domains.PublishResult, error) {
+	fail := func(message string, status int) error {
+		return &domains.LogicError{
+			Err:   errors.New(message),
+			Stage: "tour publish",
+			Code:  status,
+		}
+	}
+
+	tx, err := tr.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Блокируем сценарий, чтобы две публикации не прошли одновременно.
+	var lockedTourId uuid.UUID
+	err = tx.QueryRow(ctx, `
+        SELECT id FROM tours
+        WHERE id = $1 AND archived_at IS NULL
+        FOR UPDATE`, tourId,
+	).Scan(&lockedTourId)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fail("tour not found", http.StatusNotFound)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Ищем draft.
+	var draftId uuid.UUID
+	var draftVersion int
+	err = tx.QueryRow(ctx, `
+        SELECT id, version FROM tour_versions
+        WHERE tour_id = $1 AND status = 'draft'
+        FOR UPDATE`, tourId,
+	).Scan(&draftId, &draftVersion)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fail("draft version not found", http.StatusConflict)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Проверяем, что шаги заполнены и пронумерованы от 1 до N.
+	rows, err := tx.Query(ctx, `
+        SELECT step, title, content, selector, placement
+        FROM hints WHERE tour_version_id = $1
+        ORDER BY step`, draftId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	count := 0
+	invalid := false
+	for rows.Next() {
+		var step int
+		var title, content, selector, placement string
+		if err := rows.Scan(&step, &title, &content, &selector, &placement); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		count++
+		validPlacement := domains.Placement(placement).Valid()
+		if step != count || strings.TrimSpace(title) == "" ||
+			strings.TrimSpace(content) == "" || strings.TrimSpace(selector) == "" ||
+			!validPlacement {
+			invalid = true
+		}
+	}
+	scanErr := rows.Err()
+	rows.Close()
+	if scanErr != nil {
+		return nil, scanErr
+	}
+	if count == 0 || invalid {
+		return nil, fail("draft must contain valid, consecutively numbered hints", http.StatusConflict)
+	}
+
+	// 4. Проверяем, отличается ли draft от текущей опубликованной версии.
+	var oldPublishedId *uuid.UUID
+	err = tx.QueryRow(ctx, `
+        SELECT id FROM tour_versions
+        WHERE tour_id = $1 AND status = 'published'`, tourId,
+	).Scan(&oldPublishedId)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+
+	if oldPublishedId != nil {
+		var same bool
+		err = tx.QueryRow(ctx, `
+            SELECT (
+                d.trigger_type IS NOT DISTINCT FROM p.trigger_type
+                AND d.target_path IS NOT DISTINCT FROM p.target_path
+                AND d.audience_show_once IS NOT DISTINCT FROM p.audience_show_once
+                AND d.audience_max_shows IS NOT DISTINCT FROM p.audience_max_shows
+                AND d.audience_only_new IS NOT DISTINCT FROM p.audience_only_new
+                AND d.trigger_config IS NOT DISTINCT FROM p.trigger_config
+                AND d.audience_rules IS NOT DISTINCT FROM p.audience_rules
+                AND (
+                    SELECT COALESCE(jsonb_agg(jsonb_build_array(step, title, content, selector, placement)
+                                              ORDER BY step), '[]'::jsonb)
+                    FROM hints WHERE tour_version_id = d.id
+                ) = (
+                    SELECT COALESCE(jsonb_agg(jsonb_build_array(step, title, content, selector, placement)
+                                              ORDER BY step), '[]'::jsonb)
+                    FROM hints WHERE tour_version_id = p.id
+                )
+            )
+            FROM tour_versions d
+            JOIN tour_versions p ON p.id = $2
+            WHERE d.id = $1`, draftId, *oldPublishedId,
+		).Scan(&same)
+		if err != nil {
+			return nil, err
+		}
+		if same {
+			return nil, fail("no changes to publish", http.StatusConflict)
+		}
+
+		// 5. Архивируем старую версию, не удаляя её или её hints.
+		_, err = tx.Exec(ctx, `
+            UPDATE tour_versions
+            SET status = 'archived', archived_at = now()
+            WHERE id = $1 AND status = 'published'`, *oldPublishedId,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// 6. Публикуем draft.
+	_, err = tx.Exec(ctx, `
+        UPDATE tour_versions
+        SET status = 'published', published_at = now()
+        WHERE id = $1 AND status = 'draft'`, draftId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 7. Создаём новый draft-клон опубликованной версии.
+	var newDraftId uuid.UUID
+	err = tx.QueryRow(ctx, `
+        INSERT INTO tour_versions (
+            tour_id, version, status, trigger_type, target_path,
+            audience_show_once, audience_max_shows, audience_only_new,
+            trigger_config, audience_rules, created_by
+        )
+        SELECT
+            tv.tour_id,
+            (SELECT COALESCE(MAX(version), 0) + 1 FROM tour_versions WHERE tour_id = $2),
+            'draft', tv.trigger_type, tv.target_path,
+            tv.audience_show_once, tv.audience_max_shows, tv.audience_only_new,
+            tv.trigger_config, tv.audience_rules, tv.created_by
+        FROM tour_versions tv WHERE tv.id = $1
+        RETURNING id`, draftId, tourId,
+	).Scan(&newDraftId)
+	if err != nil {
+		return nil, err
+	}
+
+	// 8. Копируем hints. UUID и временные поля назначаются БД заново.
+	_, err = tx.Exec(ctx, `
+        INSERT INTO hints (tour_version_id, step, title, content, selector, placement)
+        SELECT $1, step, title, content, selector, placement
+        FROM hints
+        WHERE tour_version_id = $2
+        ORDER BY step`, newDraftId, draftId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 9. Всё фиксируем вместе.
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return &domains.PublishResult{
+		TourId:             tourId,
+		PublishedVersionId: draftId,
+		Version:            draftVersion,
+		NewDraftVersionId:  newDraftId,
+	}, nil
 }

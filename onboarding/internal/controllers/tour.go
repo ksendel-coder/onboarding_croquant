@@ -20,6 +20,7 @@ type (
 		List(ctx *gin.Context)
 		UpdateMeta(ctx *gin.Context)
 		Archive(ctx *gin.Context)
+		Publish(ctx *gin.Context)
 	}
 )
 
@@ -98,4 +99,18 @@ func (tc *TourController) Archive(ctx *gin.Context) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func (tc *TourController) Publish(ctx *gin.Context) {
+	tourId, err := pathUUID(ctx, "tourId")
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	result, err := tc.domain.Publish(ctx.Request.Context(), tourId)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, result)
 }

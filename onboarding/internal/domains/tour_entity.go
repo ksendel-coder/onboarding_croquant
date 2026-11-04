@@ -77,3 +77,10 @@ type TourVersion struct {
 	Version int
 	Status  TourStatus
 }
+
+type PublishResult struct {
+	TourId             uuid.UUID `json:"tour_id"`
+	PublishedVersionId uuid.UUID `json:"published_version_id"`
+	Version            int       `json:"version"`
+	NewDraftVersionId  uuid.UUID `json:"new_draft_version_id"`
+}
