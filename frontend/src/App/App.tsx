@@ -5,6 +5,8 @@ import { Scenarios } from "../Components/Admin/Pages/Scenarios";
 import { Header } from "../Components/Layouts/Header/Header";
 import { ScenarioEditor } from "../Components/Admin/Pages/ScenarioEditor/ScenarioEditor";
 import { AdminLayoutEmpty } from "../Components/Admin/AdminLayoutEmpty";
+import { OnboardingProvider } from "../Components/Onboarding/OnboardingProvider";
+import { API_URL, ONBOARDING_APP_KEY } from "../Config/env";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +26,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+        {ONBOARDING_APP_KEY && <OnboardingProvider appKey={ONBOARDING_APP_KEY} apiUrl={API_URL} />}
       </BrowserRouter>
     </QueryClientProvider>
   );

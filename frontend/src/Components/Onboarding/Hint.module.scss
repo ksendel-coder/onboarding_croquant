@@ -1,0 +1,36 @@
+.hint {
+  position: fixed;
+  z-index: 10000;
+  width: min(340px, calc(100vw - 32px));
+  padding: 20px;
+  border-radius: 12px;
+  background: #fff;
+  color: #181818;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 18%);
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+
+  h3 {
+    margin: 8px 0;
+    font-size: 18px;
+  }
+  p {
+    margin: 0 0 16px;
+  }
+
+  button:not(.close) {
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+}
+
+.close {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  cursor: pointer;
+}
