@@ -16,7 +16,7 @@ export function Hint({ hint, index, total, onNext, onClose, busy }: Props) {
 
   useEffect(() => {
     const update = () => {
-      let element: Element | null = null;
+      let element: Element | null;
 
       try { element = document.querySelector(hint.selector); } catch { return; }
       if (!element) return;

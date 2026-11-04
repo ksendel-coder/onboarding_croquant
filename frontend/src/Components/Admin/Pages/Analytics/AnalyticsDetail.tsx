@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ChevronRight, Copy, FileText, ImageOff } from "lucide-react";
+import { Copy, FileText, ImageOff } from "lucide-react";
 import styles from "./AnalyticsDetail.module.scss";
 
 const demoTour = {
