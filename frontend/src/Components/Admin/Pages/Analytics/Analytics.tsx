@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import styles from "./Analytics.module.scss";
 
 const demoRows = [
@@ -20,29 +21,31 @@ const demoMetrics: { label: string; value: string; note: string; kind?: "success
 ];
 
 export function Analytics() {
+    const navigate = useNavigate();
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
+      <header className={styles.page__header}>
         <h1>Дашборд конверсий онбординга</h1>
       </header>
 
-      <section className={styles.metrics} aria-label="Показатели онбординга">
+      <section className={styles.page__metrics} aria-label="Показатели онбординга">
         {demoMetrics.map((metric) => (
-          <article className={styles.metricCard} key={metric.label}>
-            <span className={styles.metricLabel}>{metric.label}</span>
-            <strong className={metric.kind === "success" ? styles.success : metric.kind === "brand" ? styles.brand : undefined}>
+          <article className={styles.page__metrics__metricCard} key={metric.label}>
+            <span className={styles.page__metrics__metricCard__metricLabel}>{metric.label}</span>
+            <strong className={metric.kind === "success" ? styles.page__metrics__success : metric.kind === "brand" 
+                ? styles.page__metrics__brand : undefined}>
               {metric.value}
             </strong>
-            <small className={styles.metricNote}>{metric.note}</small>
+            <small className={styles.page__metrics__metricCard__metricNote}>{metric.note}</small>
           </article>
         ))}
       </section>
 
-      <h2 className={styles.sectionTitle}>Результаты по сценариям</h2>
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+      <h2 className={styles.page__sectionTitle}>Результаты по сценариям</h2>
+      <div className={styles.page__tableWrapper}>
+        <table className={styles.page__table}>
           <thead>
-            <tr className={styles.table__header}>
+            <tr className={styles.page__table__header}>
               <th>СЦЕНАРИИ</th>
               <th>ВЕРСИЯ</th>
               <th>ЗАПУСКИ</th>
@@ -53,8 +56,12 @@ export function Analytics() {
           </thead>
           <tbody>
             {demoRows.map((row) => (
-              <tr key={row.id}>
-                <td className={styles.tourName}>{row.name}</td>
+              <tr
+                key={row.id}
+                className={styles.page__table__clickableRow}
+                onClick={() => navigate(`/admin/analytics/${row.id}`)}
+                >
+                <td>{row.name}</td>
                 <td>{row.version}</td>
                 <td>{row.started.toLocaleString("en-US")}</td>
                 <td>{row.completed.toLocaleString("en-US")}</td>

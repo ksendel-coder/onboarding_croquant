@@ -17,17 +17,17 @@ export function ScenarioSettings({ editor }: { editor: Editor }) {
         <section className={styles.card}>
           <form className={styles.fields} onSubmit={(event) => {event.preventDefault(); submitScenario();}}>
             <label>
-              <div className={styles.fieldHeader}>
+              <div className={styles.field__header}>
                 <span>Название сценария</span>
                 {editor.scenarioErrors.name && (
-                  <span className={styles.fieldError} role="alert">
+                  <span className={styles.field__errorr} role="alert">
                     {editor.scenarioErrors.name}
                   </span>
                 )}
               </div>
               <input
                 value={editor.scenario.name}
-                className={editor.scenarioErrors.name ? styles.inputError : ""}
+                className={editor.scenarioErrors.name ? styles.field__inputError : ""}
                 aria-invalid={Boolean(editor.scenarioErrors.name)}
                 placeholder="Например: Первое объявление"
                 onChange={(e) => {editor.setScenario((prev) => ({...prev, name: e.target.value}));

@@ -91,24 +91,15 @@ export function DomPicker({ active, onSelect, onCancel }: DomPickerProps) {
 
   return (
     <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <div className={styles.header}>
+      <div className={styles.overlay__modal}>
+        <div className={styles.overlay__header}>
           <div>
             <h3>Выбор элемента сайта</h3>
             <p>Нажмите на элемент, для которого нужна подсказка.</p>
           </div>
-
-          <button type="button" onClick={onCancel}>
-            ✕
-          </button>
+          <button type="button" onClick={onCancel}>✕</button>
         </div>
-
-        <iframe
-          ref={iframeRef}
-          src="/picker-preview.html"
-          title="Выбор DOM-элемента"
-          className={styles.preview}
-        />
+        <iframe ref={iframeRef} src="/picker-preview.html" title="Выбор DOM-элемента" className={styles.overlay__preview}/>
       </div>
     </div>
   );

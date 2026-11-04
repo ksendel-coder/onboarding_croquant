@@ -8,6 +8,7 @@ import { AdminLayoutEmpty } from "../Components/Admin/AdminLayoutEmpty";
 import { OnboardingProvider } from "../Components/Onboarding/OnboardingProvider";
 import { API_URL, ONBOARDING_APP_KEY } from "../Config/env";
 import { Analytics } from "../Components/Admin/Pages/Analytics/Analytics";
+import { AnalyticsDetail } from "../Components/Admin/Pages/Analytics/AnalyticsDetail";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ function App() {
               <Route index element={<Navigate to="scenarios" replace />} />
               <Route path="scenarios" element={<Scenarios />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="analytics/:tourId" element={<AnalyticsDetail />} />
             </Route>
             <Route element={<AdminLayoutEmpty />}>
               <Route path="scenarios/new" element={<ScenarioEditor />} />
