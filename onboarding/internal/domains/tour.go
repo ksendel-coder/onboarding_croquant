@@ -33,6 +33,11 @@ type TourDomainInterface interface {
 		ctx context.Context,
 		tourId uuid.UUID,
 	) error
+
+	Publish(
+		ctx context.Context,
+		tourId uuid.UUID,
+	) (*PublishResult, error)
 }
 
 type TourRepositoryInterface interface {
@@ -72,6 +77,11 @@ type TourRepositoryInterface interface {
 		tourId uuid.UUID,
 		status TourStatus,
 	) (*TourVersion, error)
+
+	Publish(
+		ctx context.Context,
+		tourId uuid.UUID,
+	) (*PublishResult, error)
 }
 
 type TourMetaPatch struct {
@@ -179,4 +189,11 @@ func validateTour(t *Tour) error {
 		"tour validation",
 		http.StatusBadRequest,
 	)
+}
+
+func (td *TourDomain) Publish(ctx context.Context, tourId uuid.UUID) (*PublishResult, error) {
+	if tourId == uuid.Nil {
+		return nil, logicErr(ErrTourNotFound, "tour publish", http.StatusBadRequest)
+	}
+	return td.tours.Publish(ctx, tourId)
 }
