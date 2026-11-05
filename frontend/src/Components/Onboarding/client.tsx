@@ -38,14 +38,13 @@ export async function resolveTour(apiUrl: string, appKey: string): Promise<Resol
 
   if (response.status === 204) return null;
   if (!response.ok) throw new Error(`Resolve failed: ${response.status}`);
-
   return (await response.json()) as ResolveResult;
 }
 
 export async function sendEvent(apiUrl: string, appKey: string, event: WidgetEvent): Promise<void> {
   const body = JSON.stringify(event);
-  
-  for (let i = 0; i < 3; i++) {
+
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const response = await fetch(endpoint(apiUrl, "events"), {
         method: "POST",
@@ -54,15 +53,16 @@ export async function sendEvent(apiUrl: string, appKey: string, event: WidgetEve
         keepalive: true,
       });
 
-      if (response.ok) return; 
+      if (response.ok) return;
       if (response.status !== 429 && response.status < 500) throw new Error(`Event rejected: ${response.status}`);
-
+      if (attempt === 2) throw new Error(`Event failed after retries: ${response.status}`);
+      
     } catch (error) {
-      if (i === 2) throw error;
+      if (error instanceof Error && error.message.startsWith("Event rejected:")) throw error;
+      if (attempt === 2) throw error;
     }
-    await new Promise<void>((resolve) => setTimeout(resolve, 400 * (i + 1)));
+    await new Promise<void>((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
   }
-  throw new Error("Could not send onboarding event");
 }
 
 export function makeEvent(result: ResolveResult, type: WidgetEvent["type"], hintId?: string): WidgetEvent {
