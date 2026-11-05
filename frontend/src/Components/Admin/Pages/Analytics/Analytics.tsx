@@ -4,7 +4,7 @@ import styles from "./Analytics.module.scss";
 const demoRows = [
   {
     id: "demo-tour-1",
-    name: "Второй сценарий",
+    name: "Публикация",
     version: "v2.1",
     started: 24150,
     completed: 20527,
@@ -65,7 +65,7 @@ export function Analytics() {
                 <td>{row.version}</td>
                 <td>{row.started.toLocaleString("en-US")}</td>
                 <td>{row.completed.toLocaleString("en-US")}</td>
-                <td className={styles.success}>{row.completionRate.toFixed(1)}%</td>
+                <td className={styles.page__metrics__success}>{row.completionRate.toFixed(1)}%</td>
                 <td>{row.goalRate.toFixed(1)}%</td>
               </tr>
             ))}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ResolveResult, WidgetEventType } from "../../Types";
 import { Hint } from "./Hint";
 import { makeEvent, resolveTour, sendEvent } from "./client";
+import styles from "./OnboardingProvider.module.scss";
 
 interface Props { appKey: string; apiUrl: string }
 
@@ -10,6 +11,7 @@ export function OnboardingProvider({ appKey, apiUrl }: Props) {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const initialized = useRef<string | null>(null);
   const loadStarted = useRef(false);
 
@@ -36,19 +38,31 @@ export function OnboardingProvider({ appKey, apiUrl }: Props) {
     initialized.current = result.tour_version_id;
 
     let cancelled = false;
+
     const start = async () => {
       try {
         await sendEvent(apiUrl, appKey, makeEvent(result, "tour_started"));
         await sendEvent(apiUrl, appKey, makeEvent(result, "hint_shown", hint.id));
-        if (!cancelled) setReady(true);
-      } catch (err) {
-        if (!cancelled) setError(String(err));
+
+        if (!cancelled) {
+          setReady(true);
+          setError(null);
+        }
+      } catch {
+        if (!cancelled) {
+          initialized.current = null;
+          setError("Не удалось запустить сценарий. Попробуйте ещё раз.");
+        }
       }
     };
     void start();
 
-    return () => { cancelled = true; };
-  }, [result, hint, apiUrl, appKey]);
+    return () => {
+      cancelled = true;
+
+      if (initialized.current === result.tour_version_id && !ready) initialized.current = null;
+    };
+  }, [result, hint, apiUrl, appKey, retryCount, ready]);
 
   async function advance() {
     if (!result || !hint || busy || !ready) return;
@@ -78,10 +92,27 @@ export function OnboardingProvider({ appKey, apiUrl }: Props) {
     finally { setBusy(false); }
   }
 
+  if (!result && error) {
+    return (
+      <div role="alert">
+        <p>{error}</p>
+        <button type="button" onClick={() => window.location.reload()}>Повторить</button>
+      </div>
+    );
+  }
+
   if (!appKey || !result || !hint) return null;
+  
   return (
     <>
-      {error && <div role="alert" style={{ position: "fixed", bottom: 16, left: 16, zIndex: 10001 }}>{error}</div>}
+      {error && (
+        <div className={styles.error} role="alert">
+          <p>{error}</p>
+          <button type="button" disabled={busy} onClick={() => {setError(null); setRetryCount((count) => count + 1);}}>
+            Повторить
+          </button>
+        </div>
+      )}
       <Hint hint={hint} index={currentIndex} total={hints.length}
         onNext={() => void advance()} onClose={() => void dismiss()}
         busy={busy || !ready} />
