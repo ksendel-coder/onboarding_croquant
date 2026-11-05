@@ -5,6 +5,8 @@ import { Scenarios } from "../Components/Admin/Pages/Scenarios";
 import { Header } from "../Components/Layouts/Header/Header";
 import { ScenarioEditor } from "../Components/Admin/Pages/ScenarioEditor/ScenarioEditor";
 import { AdminLayoutEmpty } from "../Components/Admin/AdminLayoutEmpty";
+import { Analytics } from "../Components/Admin/Pages/Analytics/Analytics";
+import { AnalyticsDetail } from "../Components/Admin/Pages/Analytics/AnalyticsDetail";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +19,8 @@ function App() {
             <Route element={<AdminLayoutWithTabs />}>
               <Route index element={<Navigate to="scenarios" replace />} />
               <Route path="scenarios" element={<Scenarios />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="analytics/:tourId" element={<AnalyticsDetail />} />
             </Route>
             <Route element={<AdminLayoutEmpty />}>
               <Route path="scenarios/new" element={<ScenarioEditor />} />

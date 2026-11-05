@@ -21,7 +21,7 @@ func RuntimeCORS() gin.HandlerFunc {
 
 		c.Header(
 			"Access-Control-Allow-Headers",
-			"Content-Type, X-App-Key",
+			"Content-Type, X-App-Key, Authorization",
 		)
 
 		c.Header(

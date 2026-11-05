@@ -93,7 +93,7 @@ function ScenariosComponent() {
               <td>{item.steps_count ?? "—"}</td>
 
               <td className={styles.page__table__row__show}>
-                <div className={styles.checkboxWrapper}>
+                <div className={styles.page__table__row__show__checkboxWrapper}>
                   <Checkbox
                     checked={Boolean(item.enabled)}
                     onChange={(checked) => handleToggleEnabled(item.id, checked)}

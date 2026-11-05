@@ -38,12 +38,12 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
                 <ol className={styles.steps}>
                   {isNew ? draftHints.map((hint, index) => (
                     <SortableStep key={`draft-${index}`} id={`draft-${index}`} disabled={busy || draftLocked}>
-                      <div className={styles.stepInfo}>
+                      <div className={styles.step__info}>
                         <strong>Шаг {index + 1} — {hint.title}</strong>
                         <small>{hint.selector}</small>
                       </div>
 
-                      <div className={styles.stepActions}>
+                      <div className={styles.step__actions}>
                         <button
                           type="button"
                           disabled={busy || draftLocked}
@@ -58,7 +58,7 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
                           disabled={busy || draftLocked}
                           aria-label="Удалить шаг"
                           title="Удалить"
-                          className={styles.deleteButton}
+                          className={styles.step__deleteButton}
                           onClick={() => removeDraftHint(index)}
                         >
                           <Trash2 size={18} />
@@ -68,12 +68,12 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
                   ))
                     : hints.map((hint, index) => (
                       <SortableStep key={hint.id} id={hint.id} disabled={busy}>
-                        <div className={styles.stepInfo}>
+                        <div className={styles.step__info}>
                           <strong>Шаг {index + 1} — {hint.title}</strong>
                           <small>{hint.selector}</small>
                         </div>
 
-                        <div className={styles.stepActions}>
+                        <div className={styles.step__actions}>
                           <button
                           type="button"
                           disabled={busy}
@@ -88,7 +88,7 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
                           disabled={busy}
                           aria-label="Удалить шаг"
                           title="Удалить"
-                          className={styles.deleteButton}
+                          className={styles.step__deleteButton}
                           onClick={() => { if (window.confirm(`Удалить шаг «${hint.title}»?`)) { removeHint.mutate(hint.id); }}}
                         >
                           <Trash2 size={18} />
@@ -105,13 +105,13 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
             </h2>
             <form className={styles.fields} onSubmit={submitHint}>
               <label>
-                <div className={styles.fieldHeader}>
+                <div className={styles.field__header}>
                   <span>Название шага</span>
-                  {stepErrors.title && (<span className={styles.fieldError} role="alert">{stepErrors.title}</span>)}
+                  {stepErrors.title && (<span className={styles.field__error} role="alert">{stepErrors.title}</span>)}
                 </div>
                 <input
                   value={stepForm.title}
-                  className={stepErrors.title ? styles.inputError : ""}
+                  className={stepErrors.title ? styles.field__inputError : ""}
                   aria-invalid={Boolean(stepErrors.title)}
                   onChange={(e) => {setStepForm((prev) => ({...prev, title: e.target.value}));
                     setStepErrors((prev) => ({ ...prev, title: undefined }));}}
@@ -119,44 +119,44 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
                 />
               </label>
               <label>
-                <div className={styles.fieldHeader}>
+                <div className={styles.field__header}>
                   <span>Текст подсказки</span>
-                  {stepErrors.content && (<span className={styles.fieldError} role="alert">{stepErrors.content}</span>)}
+                  {stepErrors.content && (<span className={styles.field__error} role="alert">{stepErrors.content}</span>)}
                 </div>
                 <textarea
                   value={stepForm.content}
                   onChange={(e) => {setStepForm((form) => ({...form, content: e.target.value}));
                     setStepErrors((prev) => ({ ...prev, content: undefined }));}}
                   placeholder="Для того, чтобы создать свое первое объявление нажмите сюда..."
-                  className={stepErrors.content ? styles.inputError : ""}
+                  className={stepErrors.content ? styles.field__inputError : ""}
                 />
               </label>
-              <div className={styles.selectorField}>
-                <div className={styles.fieldHeader}>
+              <div className={styles.selector__field}>
+                <div className={styles.field__header}>
                   <label htmlFor="hint-selector">Элемент сайта</label>
-                  {stepErrors.selector && (<span className={styles.fieldError} role="alert">{stepErrors.selector}</span>)}
+                  {stepErrors.selector && (<span className={styles.field__error} role="alert">{stepErrors.selector}</span>)}
                 </div>
 
-                <div className={styles.selectorRow}>
+                <div className={styles.selector__row}>
                   <input
                     id="hint-selector"
                     type="text"
                     placeholder="[data-onboarding='create-ad']"
                     value={stepForm.selector}
-                    className={stepErrors.selector ? styles.inputError : ""}
+                    className={stepErrors.selector ? styles.field__inputError : ""}
                     aria-invalid={Boolean(stepErrors.selector)}
                     onChange={(e) => {setStepForm((prev) => ({...prev, selector: e.target.value}));
                       setStepErrors((prev) => ({...prev, selector: undefined}));}}
                   />
-                  <button type="button" className={styles.pickButton} onClick={() => setIsPicking(true)}>
+                  <button type="button" className={styles.selector__pickButton} onClick={() => setIsPicking(true)}>
                     Выбрать
                   </button>
                 </div>
               </div>
               <label>
-                <div className={styles.fieldHeader}>
+                <div className={styles.field__header}>
                   <span>Расположение подсказки</span>
-                  {stepErrors.placement && (<span className={styles.fieldError} role="alert">{stepErrors.placement}</span>)}
+                  {stepErrors.placement && (<span className={styles.field__error} role="alert">{stepErrors.placement}</span>)}
                 </div>
                 <Select
                   value={stepForm.placement}

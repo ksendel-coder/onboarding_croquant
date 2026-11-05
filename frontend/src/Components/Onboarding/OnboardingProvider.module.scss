@@ -1,0 +1,22 @@
+.error {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 10001;
+  max-width: 340px;
+  padding: 16px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff;
+  color: #b91c1c;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  button {
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 8px;
+    background: #6568f1;
+    color: #fff;
+    cursor: pointer;
+  }
+}

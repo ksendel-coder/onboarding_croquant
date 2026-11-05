@@ -1,0 +1,152 @@
+.page {
+  padding: 40px;
+  color: #0f172a;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+
+    h1 {
+      margin-bottom: 48px;
+      font-size: 40px;
+      font-weight: 800;
+      line-height: 100%;
+    }
+  }
+
+  &__metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 51px;
+    margin-bottom: 29px;
+
+    &__metricCard {
+      height: 169px;
+      padding: 24px 22px;
+      border: 2px solid #94a3b8;
+      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+
+      &__metricLabel {
+        font-size: 18px;
+        color: #94a3b8;
+        font-weight: 700;
+      }
+
+      strong {
+        font-size: 45px;
+        line-height: 100%;
+        font-weight: 800;
+      }
+
+      &__metricNote {
+        font-size: 18px;
+        color: #94a3b8;
+        font-weight: 700;
+        height: 20px;
+      }
+    }
+
+    &__success {
+      color: #10b981;
+      font-weight: 700;
+    }
+
+    &__brand {
+      color: #6366f1;
+    }
+  }
+
+  &__sectionTitle {
+    margin-bottom: 18px;
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  &__tableWrapper {
+    width: 100%;
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow:
+      0 4px 4px 0 rgba(0, 0, 0, 0.15),
+      0 -4px 4px 0 rgba(0, 0, 0, 0.15);
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  &__table {
+    border-collapse: collapse;
+    width: 100%;
+
+    &__header {
+      background: #f8fafc;
+      color: #94a3b8;
+      font-size: 18px;
+      font-weight: 600;
+      text-transform: uppercase;
+      height: 84px;
+    }
+
+    th {
+      text-align: center;
+
+      &:nth-child(1) {
+        width: 25%;
+        text-align: left;
+        padding-left: 46px;
+      }
+      &:nth-child(2) {
+        width: 10%;
+      }
+      &:nth-child(3) {
+        width: 18%;
+      }
+      &:nth-child(4) {
+        width: 11%;
+      }
+      &:nth-child(5) {
+        width: 20%;
+      }
+      &:nth-child(6) {
+        width: 16%;
+      }
+
+      &:first-child {
+        text-align: left;
+        white-space: nowrap;
+      }
+    }
+
+    td {
+      height: 67px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 500;
+
+      &:first-child {
+        padding-left: 46px;
+        text-align: left;
+        width: 204px;
+        font-weight: 700;
+      }
+
+      &:last-child {
+        font-weight: 700;
+      }
+    }
+
+    &__clickableRow {
+      cursor: pointer;
+
+      &:hover {
+        background-color: #f4f3ff;
+      }
+    }
+  }
+}

@@ -11,20 +11,17 @@ interface SortableStepProps {
 }
 
 export function SortableStep({ id, disabled = false, children }: SortableStepProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
-    disabled,
-  });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id,disabled });
 
   return (
     <li
       ref={setNodeRef}
-      className={`${styles.stepItem} ${isDragging ? styles.stepDragging : ""}`}
+      className={`${styles.step__item} ${isDragging ? styles.step__dragging : ""}`}
       style={{ transform: CSS.Transform.toString(transform), transition }}
     >
       <button
         type="button"
-        className={styles.dragHandle}
+        className={styles.step__dragHandle}
         disabled={disabled}
         aria-label="Перетащить шаг"
         title="Перетащить шаг"
@@ -33,7 +30,6 @@ export function SortableStep({ id, disabled = false, children }: SortableStepPro
       >
         <GripVertical size={22} />
       </button>
-      
       {children}
     </li>
   );
