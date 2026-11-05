@@ -4,24 +4,37 @@ import { Hint } from "./Hint";
 import { makeEvent, resolveTour, sendEvent } from "./client";
 import styles from "./OnboardingProvider.module.scss";
 
-interface Props { appKey: string; apiUrl: string }
+interface Props {
+  appKey: string;
+  apiUrl: string;
+}
+
+type RetryAction = "start" | "advance" | "dismiss" | null;
 
 export function OnboardingProvider({ appKey, apiUrl }: Props) {
   const [result, setResult] = useState<ResolveResult | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryAction, setRetryAction] = useState<RetryAction>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const initialized = useRef<string | null>(null);
+
   const loadStarted = useRef(false);
+  const startPromise = useRef<{
+    versionId: string;
+    promise: Promise<void>;
+  } | null>(null);
 
   useEffect(() => {
     if (!appKey || loadStarted.current) return;
 
     loadStarted.current = true;
+
     void resolveTour(apiUrl, appKey)
       .then(setResult)
-      .catch((err: unknown) => setError(String(err)));
+      .catch(() => {
+        setError("Не удалось загрузить сценарий.");
+      });
   }, [apiUrl, appKey]);
 
   const hints = useMemo(() => [...(result?.tour.hints ?? [])].sort((a, b) => a.step - b.step), [result]);
@@ -34,33 +47,40 @@ export function OnboardingProvider({ appKey, apiUrl }: Props) {
   }
 
   useEffect(() => {
-    if (!result || !hint || initialized.current === result.tour_version_id) return;
-    initialized.current = result.tour_version_id;
+    if (!result || !hint || ready) return;
 
-    let cancelled = false;
+    const versionId = result.tour_version_id;
 
-    const start = async () => {
-      try {
-        await sendEvent(apiUrl, appKey, makeEvent(result, "tour_started"));
-        await sendEvent(apiUrl, appKey, makeEvent(result, "hint_shown", hint.id));
+    if (startPromise.current?.versionId !== versionId) {
+      startPromise.current = {
+        versionId,
+        promise: (async () => {
+          await sendEvent(apiUrl, appKey, makeEvent(result, "tour_started"));
+          await sendEvent(apiUrl, appKey, makeEvent(result, "hint_shown", hint.id));
+        })(),
+      };
+    }
 
-        if (!cancelled) {
-          setReady(true);
-          setError(null);
-        }
-      } catch {
-        if (!cancelled) {
-          initialized.current = null;
-          setError("Не удалось запустить сценарий. Попробуйте ещё раз.");
-        }
-      }
-    };
-    void start();
+    const pending = startPromise.current;
+    let active = true;
 
+    void pending.promise
+      .then(() => {
+        if (!active) return;
+
+        setReady(true);
+        setError(null);
+        setRetryAction(null);
+      })
+      .catch(() => {
+        if (startPromise.current === pending) startPromise.current = null;
+        if (!active) return;
+
+        setError("Не удалось запустить сценарий.");
+        setRetryAction("start");
+      });
     return () => {
-      cancelled = true;
-
-      if (initialized.current === result.tour_version_id && !ready) initialized.current = null;
+      active = false;
     };
   }, [result, hint, apiUrl, appKey, retryCount, ready]);
 
@@ -68,6 +88,7 @@ export function OnboardingProvider({ appKey, apiUrl }: Props) {
     if (!result || !hint || busy || !ready) return;
 
     setBusy(true);
+
     try {
       await post("hint_completed", hint.id);
 
@@ -77,24 +98,60 @@ export function OnboardingProvider({ appKey, apiUrl }: Props) {
       } else {
         const next = hints[currentIndex + 1];
         await post("hint_shown", next.id);
-        setResult((prev) => prev && ({ ...prev, current_hint_id: next.id }));
+        setResult((prev) => prev ? { ...prev, current_hint_id: next.id } : null);
       }
-    } catch (err) { setError(String(err)); }
-    finally { setBusy(false); }
+      setError(null);
+      setRetryAction(null);
+
+    } catch {
+      setError("Не удалось перейти к следующему шагу.");
+      setRetryAction("advance");
+
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function dismiss() {
-    if (busy || !ready) return;
-    
+    if (!result || busy || !ready) return;
+
     setBusy(true);
-    try { await post("tour_dismissed"); setResult(null); }
-    catch (err) { setError(String(err)); }
-    finally { setBusy(false); }
+
+    try {
+      await post("tour_dismissed");
+
+      setResult(null);
+      setError(null);
+      setRetryAction(null);
+
+    } catch {
+      setError("Не удалось закрыть сценарий.");
+      setRetryAction("dismiss");
+
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function retry() {
+    setError(null);
+
+    switch (retryAction) {
+      case "start":
+        setRetryCount((count) => count + 1);
+        break;
+      case "advance":
+        void advance();
+        break;
+      case "dismiss":
+        void dismiss();
+        break;
+    }
   }
 
   if (!result && error) {
     return (
-      <div role="alert">
+      <div className={styles.error} role="alert">
         <p>{error}</p>
         <button type="button" onClick={() => window.location.reload()}>Повторить</button>
       </div>
@@ -102,20 +159,24 @@ export function OnboardingProvider({ appKey, apiUrl }: Props) {
   }
 
   if (!appKey || !result || !hint) return null;
-  
+
   return (
     <>
       {error && (
         <div className={styles.error} role="alert">
           <p>{error}</p>
-          <button type="button" disabled={busy} onClick={() => {setError(null); setRetryCount((count) => count + 1);}}>
-            Повторить
-          </button>
+          <button type="button" disabled={busy} onClick={retry}>Повторить</button>
         </div>
       )}
-      <Hint hint={hint} index={currentIndex} total={hints.length}
-        onNext={() => void advance()} onClose={() => void dismiss()}
-        busy={busy || !ready} />
+
+      <Hint
+        hint={hint}
+        index={currentIndex}
+        total={hints.length}
+        onNext={() => void advance()}
+        onClose={() => void dismiss()}
+        busy={busy || !ready || Boolean(error)}
+      />
     </>
   );
 }

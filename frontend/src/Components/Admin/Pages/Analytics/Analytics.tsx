@@ -5,7 +5,7 @@ const demoRows = [
   {
     id: "demo-tour-1",
     name: "Публикация",
-    version: "v2.1",
+    version: "v7",
     started: 24150,
     completed: 20527,
     completionRate: 85.0,
