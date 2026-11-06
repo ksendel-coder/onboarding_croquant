@@ -314,11 +314,13 @@ func (rd *RuntimeDomain) startScenario(
 		current.CurrentHintId = &hints[0].Id
 	}
 
-	if err := rd.runtime.UpsertProgress(
-		ctx,
-		current,
-	); err != nil {
-		return nil, err
+	if newProgress {
+		if err := rd.runtime.UpsertProgress(
+			ctx,
+			current,
+		); err != nil {
+			return nil, err
+		}
 	}
 
 	return &ResolveResult{

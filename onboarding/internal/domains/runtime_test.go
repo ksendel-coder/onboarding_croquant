@@ -36,7 +36,8 @@ func (s *runtimeHintRepositoryStub) ListByVersion(
 
 type runtimeRepositoryStub struct {
 	RuntimeRepositoryInterface
-	progress map[uuid.UUID]*Progress
+	progress    map[uuid.UUID]*Progress
+	upsertCalls int
 }
 
 func (s *runtimeRepositoryStub) SubjectProgress(
@@ -51,6 +52,8 @@ func (s *runtimeRepositoryStub) UpsertProgress(
 	_ context.Context,
 	p *Progress,
 ) error {
+	s.upsertCalls++
+
 	copy := *p
 	s.progress[p.TourId] = &copy
 	return nil
@@ -190,12 +193,15 @@ func TestRuntimeResolveRepeatedRequestPreservesProgress(t *testing.T) {
 	first, err := domain.Resolve(context.Background(), req)
 	require.NoError(t, err)
 	require.NotNil(t, first)
+	assert.Equal(t, 1, progress.upsertCalls)
 	startedAt := progress.progress[tour.Id].StartedAt
 	progress.progress[tour.Id].CurrentHintId = &secondHint.Id
 
 	second, err := domain.Resolve(context.Background(), req)
 	require.NoError(t, err)
 	require.NotNil(t, second)
+	assert.Equal(t, 1, progress.upsertCalls,
+		"повторный resolve не должен вызывать UpsertProgress")
 	assert.Equal(t, 1, progress.progress[tour.Id].ShowsCount)
 	assert.Equal(t, startedAt, progress.progress[tour.Id].StartedAt)
 	require.NotNil(t, second.CurrentHintId)
