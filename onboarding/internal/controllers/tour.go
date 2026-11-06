@@ -21,6 +21,7 @@ type (
 		UpdateMeta(ctx *gin.Context)
 		Archive(ctx *gin.Context)
 		Publish(ctx *gin.Context)
+		UpdateSettings(ctx *gin.Context)
 	}
 )
 
@@ -113,4 +114,25 @@ func (tc *TourController) Publish(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, result)
+}
+
+func (tc *TourController) UpdateSettings(ctx *gin.Context) {
+	tourId, err := pathUUID(ctx, "tourId")
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	var body request.TourSettingsPatch
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Error(&errs.BindingError{Err: err, Zone: errs.Body, Code: http.StatusBadRequest})
+		return
+	}
+
+	if err := tc.domain.UpdateSettings(ctx.Request.Context(), tourId, body.ToDomain()); err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

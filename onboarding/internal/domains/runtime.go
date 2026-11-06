@@ -218,11 +218,44 @@ func (rd *RuntimeDomain) Resolve(
 			continue
 		}
 
+		current := progress[tour.Id]
+		if current != nil {
+			// Если пользователь проходит старую опубликованную версию,
+			// не перезаписываем её новой версией из /resolve.
+			// События MVP-06 сверяются с tour_progress.tour_version_id.
+			if current.Status == ProgressInProgress && current.TourVersionId != tour.VersionId {
+				continue
+			}
+
+			// Повторный resolve текущей активной версии:
+			// продолжить без нового показа и сброса шага.
+			if current.Status == ProgressInProgress && current.TourVersionId == tour.VersionId {
+				return rd.startScenario(ctx, req, tour, current)
+			}
+
+			// Завершённую или закрытую ту же версию заново не запускаем.
+			if current.TourVersionId == tour.VersionId {
+				continue
+			}
+		}
+
+		if tour.Audience != nil {
+			if tour.Audience.OnlyNew && current != nil {
+				continue
+			}
+			if tour.Audience.ShowOnce && current != nil && current.ShowsCount > 0 {
+				continue
+			}
+			if tour.Audience.MaxShows > 0 && current != nil && current.ShowsCount >= tour.Audience.MaxShows {
+				continue
+			}
+		}
+
 		return rd.startScenario(
 			ctx,
 			req,
 			tour,
-			progress[tour.Id],
+			current,
 		)
 	}
 
@@ -247,6 +280,7 @@ func (rd *RuntimeDomain) startScenario(
 	tour.StepsCount = len(hints)
 
 	now := time.Now().UTC()
+	newProgress := current == nil || current.TourVersionId != tour.VersionId
 
 	switch {
 	case current == nil:
@@ -272,20 +306,21 @@ func (rd *RuntimeDomain) startScenario(
 		}
 
 	default:
-		current.ShowsCount++
+		// Повторный /resolve: не увеличиваем shows_count,
+		// не меняем started_at и текущий шаг.
 	}
 
-	if current.Status == ProgressInProgress &&
-		current.CurrentHintId == nil &&
-		len(hints) > 0 {
+	if newProgress && len(hints) > 0 {
 		current.CurrentHintId = &hints[0].Id
 	}
 
-	if err := rd.runtime.UpsertProgress(
-		ctx,
-		current,
-	); err != nil {
-		return nil, err
+	if newProgress {
+		if err := rd.runtime.UpsertProgress(
+			ctx,
+			current,
+		); err != nil {
+			return nil, err
+		}
 	}
 
 	return &ResolveResult{

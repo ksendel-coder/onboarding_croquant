@@ -2,7 +2,9 @@ package domains
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -38,6 +40,12 @@ type TourDomainInterface interface {
 		ctx context.Context,
 		tourId uuid.UUID,
 	) (*PublishResult, error)
+
+	UpdateSettings(
+		ctx context.Context,
+		tourId uuid.UUID,
+		p TourSettingsPatch,
+	) error
 }
 
 type TourRepositoryInterface interface {
@@ -82,6 +90,12 @@ type TourRepositoryInterface interface {
 		ctx context.Context,
 		tourId uuid.UUID,
 	) (*PublishResult, error)
+
+	UpdateSettings(
+		ctx context.Context,
+		tourId uuid.UUID,
+		p TourSettingsPatch,
+	) error
 }
 
 type TourMetaPatch struct {
@@ -89,6 +103,15 @@ type TourMetaPatch struct {
 	Description *string
 	Enabled     *bool
 	Priority    *int
+}
+
+type TourSettingsPatch struct {
+	TargetPath       *string
+	TriggerType      *TriggerType
+	TriggerConfig    *TriggerConfig
+	AudienceShowOnce *bool
+	AudienceMaxShows *int
+	AudienceOnlyNew  *bool
 }
 
 func NewTourDomain(
@@ -196,4 +219,42 @@ func (td *TourDomain) Publish(ctx context.Context, tourId uuid.UUID) (*PublishRe
 		return nil, logicErr(ErrTourNotFound, "tour publish", http.StatusBadRequest)
 	}
 	return td.tours.Publish(ctx, tourId)
+}
+
+func (td *TourDomain) UpdateSettings(
+	ctx context.Context,
+	tourId uuid.UUID,
+	p TourSettingsPatch,
+) error {
+	if p.TargetPath != nil && strings.TrimSpace(*p.TargetPath) == "" {
+		return logicErr(errors.New("target_path is required"), "tour settings", http.StatusBadRequest)
+	}
+	if p.AudienceMaxShows != nil && *p.AudienceMaxShows < 0 {
+		return logicErr(errors.New("audience_max_shows must be >= 0"), "tour settings", http.StatusBadRequest)
+	}
+	if p.TriggerType != nil {
+		switch *p.TriggerType {
+		case TriggerOnLoad, TriggerDelay, TriggerExitIntent, TriggerManual,
+			TriggerScrollDepth, TriggerInactivity, TriggerElementVisible:
+		default:
+			return logicErr(errors.New("invalid trigger_type"), "tour settings", http.StatusBadRequest)
+		}
+	}
+	if p.TriggerConfig != nil {
+		config := p.TriggerConfig
+		if config.DelayMs != nil && (*config.DelayMs < 0 || *config.DelayMs > 600000) {
+			return logicErr(errors.New("invalid delay_ms"), "tour settings", http.StatusBadRequest)
+		}
+		if config.ScrollDepth != nil && (*config.ScrollDepth < 0 || *config.ScrollDepth > 100) {
+			return logicErr(errors.New("invalid scroll_depth"), "tour settings", http.StatusBadRequest)
+		}
+		if config.InactivitySecs != nil && (*config.InactivitySecs < 0 || *config.InactivitySecs > 86400) {
+			return logicErr(errors.New("invalid inactivity_secs"), "tour settings", http.StatusBadRequest)
+		}
+		if config.ElementSelector != nil && strings.TrimSpace(*config.ElementSelector) == "" {
+			return logicErr(errors.New("empty element_selector"), "tour settings", http.StatusBadRequest)
+		}
+	}
+
+	return td.tours.UpdateSettings(ctx, tourId, p)
 }
