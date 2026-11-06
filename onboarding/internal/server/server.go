@@ -105,6 +105,11 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 			)
 			{
 				tourID.PATCH(
+					"/settings",
+					createStruct.TourController.UpdateSettings,
+				)
+
+				tourID.PATCH(
 					"",
 					createStruct.TourController.UpdateMeta,
 				)

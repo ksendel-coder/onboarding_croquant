@@ -27,10 +27,10 @@ const (
 )
 
 type TriggerConfig struct {
-	ScrollDepth     *int
-	InactivitySecs  *int
-	ElementSelector *string
-	DelayMs         *int
+	ScrollDepth     *int    `json:"scroll_depth,omitempty"`
+	InactivitySecs  *int    `json:"inactivity_secs,omitempty"`
+	ElementSelector *string `json:"element_selector,omitempty"`
+	DelayMs         *int    `json:"delay_ms,omitempty"`
 }
 
 type AudienceRule struct {

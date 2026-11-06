@@ -528,3 +528,82 @@ func (tr *TourRepository) Publish(ctx context.Context, tourId uuid.UUID) (*domai
 		NewDraftVersionId:  newDraftId,
 	}, nil
 }
+
+func (tr *TourRepository) UpdateSettings(
+	ctx context.Context,
+	tourId uuid.UUID,
+	p domains.TourSettingsPatch,
+) error {
+	tx, err := tr.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var draftId uuid.UUID
+	err = tx.QueryRow(ctx, `
+		SELECT v.id
+		FROM tours t
+		JOIN tour_versions v ON v.tour_id=t.id AND v.status='draft'
+		WHERE t.id=$1 AND t.archived_at IS NULL
+		FOR UPDATE OF t, v`,
+		tourId,
+	).Scan(&draftId)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return &domains.LogicError{
+			Err: errors.New("draft not found"), Stage: "tour settings", Code: http.StatusConflict,
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	set := make([]string, 0, 6)
+	args := make([]any, 0, 7)
+	add := func(column string, value any) {
+		args = append(args, value)
+		set = append(set, fmt.Sprintf("%s=$%d", column, len(args)))
+	}
+	if p.TargetPath != nil {
+		add("target_path", strings.TrimSpace(*p.TargetPath))
+	}
+	if p.TriggerType != nil {
+		add("trigger_type", string(*p.TriggerType))
+	}
+	if p.AudienceShowOnce != nil {
+		add("audience_show_once", *p.AudienceShowOnce)
+	}
+	if p.AudienceMaxShows != nil {
+		add("audience_max_shows", *p.AudienceMaxShows)
+	}
+	if p.AudienceOnlyNew != nil {
+		add("audience_only_new", *p.AudienceOnlyNew)
+	}
+	if p.TriggerConfig != nil {
+		bytes, err := marshalTriggerConfig(p.TriggerConfig)
+		if err != nil {
+			return err
+		}
+		add("trigger_config", bytes)
+	}
+
+	if len(set) > 0 {
+		args = append(args, draftId)
+		query := fmt.Sprintf(
+			`UPDATE tour_versions SET %s WHERE id=$%d AND status='draft'`,
+			strings.Join(set, ", "),
+			len(args),
+		)
+		tag, err := tx.Exec(ctx, query, args...)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() != 1 {
+			return &domains.LogicError{
+				Err: errors.New("draft not found"), Stage: "tour settings", Code: http.StatusConflict,
+			}
+		}
+	}
+
+	return tx.Commit(ctx)
+}
