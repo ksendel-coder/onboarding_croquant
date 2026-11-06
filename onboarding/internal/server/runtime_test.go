@@ -109,6 +109,9 @@ func TestResolveRouteReturnsScenarioHints(t *testing.T) {
 	appId := uuid.New()
 	versionId := uuid.New()
 	hintId := uuid.New()
+	delayMs := 1500
+	scrollDepth := 60
+	elementSelector := "#welcome"
 	domain := &runtimeDomainStub{
 		app: &domains.App{
 			Id:             appId,
@@ -117,12 +120,20 @@ func TestResolveRouteReturnsScenarioHints(t *testing.T) {
 		},
 		result: &domains.ResolveResult{
 			Tour: &domains.Tour{
-				Id:        uuid.New(),
-				AppId:     appId,
-				VersionId: versionId,
-				Version:   1,
-				Status:    domains.TourPublished,
-				Enabled:   true,
+				Id:          uuid.New(),
+				AppId:       appId,
+				VersionId:   versionId,
+				Version:     1,
+				Status:      domains.TourPublished,
+				Enabled:     true,
+				TargetPath:  "/dashboard",
+				TriggerType: domains.TriggerDelay,
+				TriggerConfig: &domains.TriggerConfig{
+					DelayMs:         &delayMs,
+					ScrollDepth:     &scrollDepth,
+					ElementSelector: &elementSelector,
+				},
+				Audience: &domains.Audience{ShowOnce: true, MaxShows: 2},
 				Hints: []domains.Hint{{
 					Id:            hintId,
 					TourVersionId: versionId,
@@ -159,6 +170,16 @@ func TestResolveRouteReturnsScenarioHints(t *testing.T) {
 			"version_id": "`+versionId.String()+`",
 			"version": 1,
 			"status": "published",
+			"target_path": "/dashboard",
+			"trigger_type": "delay",
+			"trigger_config": {
+				"delay_ms": 1500,
+				"scroll_depth": 60,
+				"element_selector": "#welcome"
+			},
+			"audience_show_once": true,
+			"audience_max_shows": 2,
+			"audience_only_new": false,
 			"hints": [{
 				"id": "`+hintId.String()+`",
 				"tour_version_id": "`+versionId.String()+`",
