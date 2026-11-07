@@ -17,7 +17,7 @@ import (
 func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 	dsn := os.Getenv("EVENT_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("EVENT_TEST_DATABASE_URL is not set")
+		t.Fatal("EVENT_TEST_DATABASE_URL must be set")
 	}
 
 	ctx := context.Background()
@@ -232,6 +232,12 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 
 	analytics, err := repo.Analytics(ctx, tourId, versionId)
 	require.NoError(t, err)
+
+	require.Equal(t, tourId, analytics.TourId)
+	require.Equal(t, versionId, analytics.TourVersionId)
+	require.GreaterOrEqual(t, analytics.CompletionRate, 0.0)
+	require.LessOrEqual(t, analytics.CompletionRate, 100.0)
+
 	assert.Equal(t, 2, analytics.Started)
 	assert.Equal(t, 1, analytics.Completed)
 	assert.Equal(t, 1, analytics.Dismissed)

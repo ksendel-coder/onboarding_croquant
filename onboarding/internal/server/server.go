@@ -148,6 +148,11 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 					"/publish",
 					createStruct.TourController.Publish,
 				)
+
+				tourID.GET(
+					"/analytics",
+					createStruct.EventController.Analytics,
+				)
 			}
 		}
 	}

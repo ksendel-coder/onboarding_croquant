@@ -198,5 +198,5 @@ func TestAnalyticsIsNotExposedThroughPublicAppKeyRoutes(t *testing.T) {
 
 	handler.ServeHTTP(recorder, req)
 
-	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 }
