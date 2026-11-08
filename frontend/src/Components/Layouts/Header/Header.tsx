@@ -1,5 +1,5 @@
 import { memo } from "react";
-import logo from "../../../../public/logo.svg";
+import logo from "/logo.svg";
 import styles from './Styles.module.scss';
 
 function HeaderComponent() {
