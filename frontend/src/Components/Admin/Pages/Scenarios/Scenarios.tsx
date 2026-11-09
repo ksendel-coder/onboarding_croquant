@@ -79,7 +79,7 @@ function ScenariosComponent() {
            {filteredScenarios.length === 0 ? (
               <tr>
                 <td colSpan={6} className={styles.page__table__empty}>
-                  {scenarios.length === 0 ? "Сценариев пока нет. Создайте свой первый сценарий" : "По вашему запросу ничего не найдено"}
+                  {scenarios.length === 0 ? "Создайте свой первый сценарий" : "По вашему запросу ничего не найдено"}
                 </td>
               </tr>
           ) : (
