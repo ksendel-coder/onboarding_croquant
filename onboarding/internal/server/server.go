@@ -150,6 +150,11 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 				)
 
 				tourID.GET(
+					"/preview",
+					createStruct.TourController.Preview,
+				)
+
+				tourID.GET(
 					"/analytics",
 					createStruct.EventController.Analytics,
 				)

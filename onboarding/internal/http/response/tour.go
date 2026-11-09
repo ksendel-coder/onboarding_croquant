@@ -26,7 +26,7 @@ type Tour struct {
 	AudienceShowOnce bool                   `json:"audience_show_once"`
 	AudienceMaxShows int                    `json:"audience_max_shows"`
 	AudienceOnlyNew  bool                   `json:"audience_only_new"`
-	Hints            []Hint                 `json:"hints,omitempty"`
+	Hints            []Hint                 `json:"hints"`
 	StepsCount       int                    `json:"steps_count"`
 }
 

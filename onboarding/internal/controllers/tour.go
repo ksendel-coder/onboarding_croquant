@@ -24,6 +24,7 @@ type (
 		UpdateSettings(ctx *gin.Context)
 		ListVersions(ctx *gin.Context)
 		RestoreVersion(ctx *gin.Context)
+		Preview(ctx *gin.Context)
 	}
 )
 
@@ -186,4 +187,19 @@ func (tc *TourController) RestoreVersion(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, result)
+}
+
+func (tc *TourController) Preview(ctx *gin.Context) {
+	tourId, err := pathUUID(ctx, "tourId")
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	tour, err := tc.domain.Preview(ctx.Request.Context(), tourId)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, response.NewPreview(tour))
 }
