@@ -47,6 +47,11 @@ type TourDomainInterface interface {
 		p TourSettingsPatch,
 	) error
 
+	Preview(
+		ctx context.Context,
+		tourId uuid.UUID,
+	) (*Tour, error)
+
 	ListVersions(
 		ctx context.Context,
 		tourId uuid.UUID,
@@ -107,6 +112,11 @@ type TourRepositoryInterface interface {
 		tourId uuid.UUID,
 		p TourSettingsPatch,
 	) error
+
+	Preview(
+		ctx context.Context,
+		tourId uuid.UUID,
+	) (*Tour, error)
 
 	ListVersions(
 		ctx context.Context,
@@ -293,4 +303,11 @@ func (td *TourDomain) RestoreVersion(ctx context.Context, tourId, sourceVersionI
 		return nil, logicErr(ErrVersionNotFound, "tour version restore", http.StatusBadRequest)
 	}
 	return td.tours.RestoreVersion(ctx, tourId, sourceVersionId)
+}
+
+func (td *TourDomain) Preview(ctx context.Context, tourId uuid.UUID) (*Tour, error) {
+	if tourId == uuid.Nil {
+		return nil, logicErr(ErrTourNotFound, "tour preview", http.StatusBadRequest)
+	}
+	return td.tours.Preview(ctx, tourId)
 }

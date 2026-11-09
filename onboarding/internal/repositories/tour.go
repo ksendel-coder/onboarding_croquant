@@ -769,3 +769,103 @@ func (tr *TourRepository) RestoreVersion(
 		StepsCount:            int(tag.RowsAffected()),
 	}, nil
 }
+
+func (tr *TourRepository) Preview(ctx context.Context, tourId uuid.UUID) (*domains.Tour, error) {
+	fail := func(err error, status int) error {
+		return &domains.LogicError{
+			Err:   err,
+			Stage: "tour preview",
+			Code:  status,
+		}
+	}
+
+	tx, err := tr.pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.RepeatableRead,
+		AccessMode: pgx.ReadOnly,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	tour := new(domains.Tour)
+	err = tx.QueryRow(ctx, `
+		SELECT id, app_id, title, description, enabled, priority,
+		       created_at, updated_at
+		FROM tours
+		WHERE id = $1 AND archived_at IS NULL`, tourId,
+	).Scan(
+		&tour.Id, &tour.AppId, &tour.Title, &tour.Description,
+		&tour.Enabled, &tour.Priority, &tour.CreatedAt, &tour.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fail(domains.ErrTourNotFound, http.StatusNotFound)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		rawTriggerConfig []byte
+		rawAudienceRules []byte
+	)
+	tour.Audience = &domains.Audience{}
+
+	err = tx.QueryRow(ctx, `
+		SELECT id, version, status, trigger_type, target_path,
+		       audience_show_once, audience_max_shows, audience_only_new,
+		       trigger_config, audience_rules
+		FROM tour_versions
+		WHERE tour_id = $1 AND status = 'draft'`, tourId,
+	).Scan(
+		&tour.VersionId, &tour.Version, &tour.Status,
+		&tour.TriggerType, &tour.TargetPath,
+		&tour.Audience.ShowOnce, &tour.Audience.MaxShows, &tour.Audience.OnlyNew,
+		&rawTriggerConfig, &rawAudienceRules,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fail(domains.ErrNoDraft, http.StatusConflict)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if err := unmarshalTriggerConfig(rawTriggerConfig, &tour.TriggerConfig); err != nil {
+		return nil, err
+	}
+	if err := unmarshalAudienceRules(rawAudienceRules, &tour.Audience.Rules); err != nil {
+		return nil, err
+	}
+
+	rows, err := tx.Query(ctx, `
+		SELECT id, tour_version_id, step, title, content,
+		       selector, placement, created_at, updated_at
+		FROM hints
+		WHERE tour_version_id = $1
+		ORDER BY step, id`, tour.VersionId,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	tour.Hints = make([]domains.Hint, 0)
+	for rows.Next() {
+		hint, err := scanHint(rows)
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+		tour.Hints = append(tour.Hints, *hint)
+	}
+	scanErr := rows.Err()
+	rows.Close()
+	if scanErr != nil {
+		return nil, scanErr
+	}
+	tour.StepsCount = len(tour.Hints)
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return tour, nil
+}
