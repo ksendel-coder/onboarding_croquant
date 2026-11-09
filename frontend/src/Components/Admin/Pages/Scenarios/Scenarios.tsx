@@ -5,15 +5,17 @@ import cn from "classnames";
 import styles from "./Styles.module.scss";
 import { Checkbox } from "../../../UI/Checkbox";
 import { useToursQuery } from "../../../../Hooks/useToursQuery";
-// import { useDeleteTourMutation } from "../../../../Hooks/useDeleteTourMutation";
+import { useDeleteTourMutation } from "../../../../Hooks/useDeleteTourMutation";
 import { onboardingAPI } from "../../../../Api/onboarding";
 import { useNavigate } from "react-router-dom";
+import { Pencil } from "lucide-react";
+import { ScenarioActions } from "./ScenarioActions";
 
 function ScenariosComponent() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const { data: scenarios = [], isLoading, error, refetch } = useToursQuery();
-  // const deleteMutation = useDeleteTourMutation();
+  const deleteMutation = useDeleteTourMutation();
   const navigate = useNavigate();
 
   const filteredScenarios = useMemo(() => {
@@ -24,7 +26,7 @@ function ScenariosComponent() {
     });
   }, [scenarios, search, status]);
 
-  // const handleDelete = (id: string) => { deleteMutation.mutate(id); };
+  const handleDelete = (id: string) => { deleteMutation.mutate(id); };
   const handleToggleEnabled = async (id: string, enabled: boolean) => {
     try {
       await onboardingAPI.updateTourMeta(id, { enabled });
@@ -110,14 +112,15 @@ function ScenariosComponent() {
               </td>
                 
                 <td>
-                  <Button 
-                    size="edit" 
-                    color="edit" 
-                    className={styles.page__table__row__edit} 
-                    onClick={() => handleEdit(item.id)}
-                  >
+                  <Button size="edit" color="edit" className={styles.page__table__row__edit} onClick={() => handleEdit(item.id)}>
+                    <Pencil size={30} />
                     Редактировать
                   </Button>
+                  <ScenarioActions
+                    onEdit={() => handleEdit(item.id)}
+                    onPublish={() => navigate(`/admin/scenarios/${item.id}/edit`)}
+                    onDelete={() => {handleDelete(item.id)}}
+                  />
                 </td>
               </tr>
           )))}
