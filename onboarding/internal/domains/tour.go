@@ -46,6 +46,17 @@ type TourDomainInterface interface {
 		tourId uuid.UUID,
 		p TourSettingsPatch,
 	) error
+
+	ListVersions(
+		ctx context.Context,
+		tourId uuid.UUID,
+	) ([]TourVersionHistoryItem, error)
+
+	RestoreVersion(
+		ctx context.Context,
+		tourId,
+		sourceVersionId uuid.UUID,
+	) (*RestoreVersionResult, error)
 }
 
 type TourRepositoryInterface interface {
@@ -96,6 +107,17 @@ type TourRepositoryInterface interface {
 		tourId uuid.UUID,
 		p TourSettingsPatch,
 	) error
+
+	ListVersions(
+		ctx context.Context,
+		tourId uuid.UUID,
+	) ([]TourVersionHistoryItem, error)
+
+	RestoreVersion(
+		ctx context.Context,
+		tourId,
+		sourceVersionId uuid.UUID,
+	) (*RestoreVersionResult, error)
 }
 
 type TourMetaPatch struct {
@@ -257,4 +279,18 @@ func (td *TourDomain) UpdateSettings(
 	}
 
 	return td.tours.UpdateSettings(ctx, tourId, p)
+}
+
+func (td *TourDomain) ListVersions(ctx context.Context, tourId uuid.UUID) ([]TourVersionHistoryItem, error) {
+	if tourId == uuid.Nil {
+		return nil, logicErr(ErrTourNotFound, "tour version history", http.StatusBadRequest)
+	}
+	return td.tours.ListVersions(ctx, tourId)
+}
+
+func (td *TourDomain) RestoreVersion(ctx context.Context, tourId, sourceVersionId uuid.UUID) (*RestoreVersionResult, error) {
+	if tourId == uuid.Nil || sourceVersionId == uuid.Nil {
+		return nil, logicErr(ErrVersionNotFound, "tour version restore", http.StatusBadRequest)
+	}
+	return td.tours.RestoreVersion(ctx, tourId, sourceVersionId)
 }
