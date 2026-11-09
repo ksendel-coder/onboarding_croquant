@@ -1,0 +1,53 @@
+.background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  &__blurOne,
+  &__blurTwo,
+  &__blurThree,
+  &__blurFour {
+    position: absolute;
+    z-index: 0;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  &__blurOne {
+    width: 1124px;
+    height: 1124px;
+    top: 0;
+    left: 112px;
+    background: linear-gradient(89.51deg, #aec4ff 0.53%, #94b0fd 99.7%);
+    filter: blur(200px);
+  }
+
+  &__blurTwo {
+    width: 386px;
+    height: 406px;
+    top: -72px;
+    right: -72px;
+    background: linear-gradient(89.36deg, #d4dffc 0.69%, #9db7fe 125.24%);
+    filter: blur(30px);
+  }
+
+  &__blurThree {
+    width: 554px;
+    height: 518px;
+    bottom: -150px;
+    left: 142px;
+    background: linear-gradient(61.04deg, #c6d5ff 13.89%, #b0c1f1 67.87%);
+    filter: blur(25px);
+  }
+
+  &__blurFour {
+    width: 367px;
+    height: 367px;
+    bottom: -15px;
+    right: 0;
+    background: linear-gradient(89.51deg, #aabff9 0.53%, #3b508e 99.7%);
+    filter: blur(200px);
+  }
+}

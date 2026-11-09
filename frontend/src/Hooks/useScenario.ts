@@ -106,17 +106,11 @@ export function useScenario(tourId: string | undefined, uploadDraftHints: (id: s
       return { id };
     },
 
-    onSuccess: async ({ id }) => {
-      setSaveError("");
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["tours"] }),
-        queryClient.invalidateQueries({ queryKey: ["scenario-edit-tour", id] }),
-        queryClient.invalidateQueries({ queryKey: ["hints", id] }),
-      ]);
-
-      navigate(`/admin/scenarios/${id}/edit`, { replace: true });
-    },
+    onSuccess: async () => {
+    setSaveError("");
+    await queryClient.invalidateQueries({ queryKey: ["tours"] });
+    navigate("/admin/scenarios", { replace: true });
+  },
 
     onError: (error: Error) => { setSaveError(error.message || "Не удалось опубликовать сценарий"); }
   });

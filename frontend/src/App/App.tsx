@@ -29,11 +29,11 @@ export default function App() {
                   <Route index element={<Navigate to="scenarios" replace />} />
                   <Route path="scenarios" element={<Scenarios />} />
                   <Route path="analytics" element={<Analytics />} />
-                  <Route path="analytics/:tourId" element={<AnalyticsDetail />} />
                 </Route>
                 <Route element={<AdminLayoutEmpty />}>
                   <Route path="scenarios/new" element={<ScenarioEditor />} />
                   <Route path="scenarios/:tourId/edit" element={<ScenarioEditor />} />
+                  <Route path="analytics/:tourId" element={<AnalyticsDetail />} />
                 </Route>
               </Route>
             </Route>
