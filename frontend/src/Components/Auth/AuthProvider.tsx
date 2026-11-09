@@ -3,21 +3,24 @@ import { authAPI } from "../../Api/auth";
 import { AuthContext } from "./AuthContext";
 import type { AuthStatus, AuthUser, Credentials } from "../../Types";
 import { AUTH_EXPIRED_EVENT, AUTH_TOKEN_KEY } from "../../Utils/constants";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>(() => sessionStorage.getItem(AUTH_TOKEN_KEY) ? "checking" : "anonymous");
   const [checkError, setCheckError] = useState(false);
   const [checkNumber, setCheckNumber] = useState(0);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const onExpired = () => {
+      queryClient.clear();
       setUser(null);
       setStatus("anonymous");
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     const token = sessionStorage.getItem(AUTH_TOKEN_KEY);

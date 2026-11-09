@@ -13,9 +13,13 @@ function HeaderComponent() {
   const [busy, setBusy] = useState(false);
 
   const handleLogout = async () => {
+    if (busy) return;
     setBusy(true);
+
     try {
       await logout();
+    } catch (error) {
+      console.error("Logout request failed:", error);
     } finally {
       queryClient.clear();
       navigate("/login", { replace: true });
