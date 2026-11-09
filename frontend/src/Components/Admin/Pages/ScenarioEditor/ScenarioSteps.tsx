@@ -179,7 +179,7 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
               {reorderHints.isError && (<p role="alert">Не удалось поменять порядок.</p>)}
 
               <button className={styles.primary} disabled={busy || draftLocked} type="submit">
-                {editingHintId !== null || editingDraftIndex !== null ? "Сохранить изменения" : "+ Добавить шаг"}
+                {editingHintId !== null || editingDraftIndex !== null ? "Сохранить изменения" : "Сохранить шаг"}
               </button>
             </form>
           </section>
