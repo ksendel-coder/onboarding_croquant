@@ -21,7 +21,7 @@
   }
 
   &__transparent {
-    background: transparent;
+    background: #FFFFFF;
     border: 3px solid rgba(99, 102, 241, 0.8);
     color: #94A3B8;
     font-size: 30px;
@@ -35,7 +35,7 @@
 
   &__back {
     color: #94A3B8;
-    background: transparent;
+    background: #FFFFFF;
     border: 3px solid #94A3B8;
     font-size: 20px;
     font-weight: 600;
@@ -53,7 +53,7 @@
     font-size: 18;
     font-weight: 700;
     color: #000000;
-    border-radius: 20px;
+    border-radius: 10px;
   }
 
   &__pink {
@@ -69,8 +69,8 @@
   }
 
   &__edit {
-    width: 166px;
-    height: 28px;
+    width: 181px;
+    height: 40px;
   }
 
   &__checkbox {

@@ -3,3 +3,4 @@ export * from "./tour";
 export * from "./hint";
 export * from "./widget";
 export * from "./analytics";
+export * from "./auth";

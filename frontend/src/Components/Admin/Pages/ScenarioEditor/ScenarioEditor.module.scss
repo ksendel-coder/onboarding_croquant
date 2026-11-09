@@ -107,6 +107,7 @@
     &:focus {
       outline: none;
       border: 2px solid #706cf5;
+      box-shadow: 0 0 0 3px rgba(108, 112, 245, 0.12);
     }
   }
 
@@ -197,6 +198,7 @@
       &:focus {
         outline: none;
         border-color: #706cf5;
+        box-shadow: 0 0 0 3px rgba(108, 112, 245, 0.12);
       }
 
       &.field__inputError {
@@ -242,6 +244,7 @@
 
   &:focus-within {
     border: 2px solid #706cf5;
+    box-shadow: 0 0 0 3px rgba(108, 112, 245, 0.12);
   }
 }
 
@@ -395,28 +398,5 @@
     border: 1px solid #e3e6f4;
     border-radius: 14px;
     background: #fff;
-  }
-}
-
-@media (max-width: 1050px) {
-  .block {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
-  }
-}
-
-@media (max-width: 650px) {
-  .page {
-    padding: 20px;
-  }
-
-  .header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .card {
-    padding: 22px;
   }
 }

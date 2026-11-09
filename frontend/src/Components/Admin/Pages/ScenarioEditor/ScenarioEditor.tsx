@@ -7,7 +7,8 @@ import styles from "./ScenarioEditor.module.scss";
 
 function ScenarioEditorComponent() {
   const editor = useScenarioEditor();
-  const { isNew, tourQuery, hintsQuery, navigate, busy, saveScenario, saveError, submitScenario } = editor;
+  const { isNew, tourQuery, hintsQuery, navigate, busy, saveScenario, saveError, submitScenario, publishScenario, 
+          submitPublish } = editor;
 
   if (!isNew && (tourQuery.isLoading || hintsQuery.isLoading)) return <p>Загрузка сценария...</p>;
   if (!isNew && (tourQuery.isError || hintsQuery.isError || !tourQuery.data)) return <p>Не удалось загрузить сценарий.</p>;
@@ -26,8 +27,8 @@ function ScenarioEditorComponent() {
           <Button size="grey" color="grey" disabled={busy} onClick={submitScenario}>
             {saveScenario.isPending ? "Сохранение..." : "Сохранить черновик"}
           </Button>
-           <Button size="pink" color="pink" disabled={true}>
-            Опубликовать
+          <Button size="pink" color="pink" disabled={busy} onClick={submitPublish}>
+            {publishScenario.isPending ? "Публикация..." : "Опубликовать"}
           </Button>
         </div>
       </header>

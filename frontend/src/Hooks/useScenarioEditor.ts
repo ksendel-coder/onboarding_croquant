@@ -6,5 +6,7 @@ export function useScenarioEditor() {
   const { tourId } = useParams<{ tourId?: string }>();
   const steps = useScenarioSteps(tourId);
   const scenarioData = useScenario(tourId, steps.uploadDraftHints);
-  return { ...steps, ...scenarioData, busy: steps.busy || scenarioData.saveScenario.isPending };
+
+  return { ...steps, ...scenarioData, busy: steps.busy || scenarioData.saveScenario.isPending 
+                                                       || scenarioData.publishScenario.isPending };
 }

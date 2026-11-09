@@ -7,39 +7,44 @@ import { ScenarioEditor } from "../Components/Admin/Pages/ScenarioEditor/Scenari
 import { AdminLayoutEmpty } from "../Components/Admin/AdminLayoutEmpty";
 import { Analytics } from "../Components/Admin/Pages/Analytics/Analytics";
 import { AnalyticsDetail } from "../Components/Admin/Pages/Analytics/AnalyticsDetail";
+import { AuthProvider } from "../Components/Auth/AuthProvider";
+import { AuthPage } from "../Components/Auth/AuthPage";
+import { ProtectedRoute } from "../Components/Auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/admin" element={<WrappPages />}>
-            <Route element={<AdminLayoutWithTabs />}>
-              <Route index element={<Navigate to="scenarios" replace />} />
-              <Route path="scenarios" element={<Scenarios />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="analytics/:tourId" element={<AnalyticsDetail />} />
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Navigate to="/admin" replace />} />
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/register" element={<AuthPage mode="register" />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/admin" element={<AdminShell />}>
+                <Route element={<AdminLayoutWithTabs />}>
+                  <Route index element={<Navigate to="scenarios" replace />} />
+                  <Route path="scenarios" element={<Scenarios />} />
+                  <Route path="analytics" element={<Analytics />} />
+                </Route>
+                <Route element={<AdminLayoutEmpty />}>
+                  <Route path="scenarios/new" element={<ScenarioEditor />} />
+                  <Route path="scenarios/:tourId/edit" element={<ScenarioEditor />} />
+                  <Route path="analytics/:tourId" element={<AnalyticsDetail />} />
+                </Route>
+              </Route>
             </Route>
-            <Route element={<AdminLayoutEmpty />}>
-              <Route path="scenarios/new" element={<ScenarioEditor />} />
-              <Route path="scenarios/:tourId/edit" element={<ScenarioEditor />} />
-            </Route>
-          </Route>
-        </Routes>
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );
 }
 
-function WrappPages() {
-  return (
-    <>
-      <Header />
-      <Outlet />
-    </>
-  );
+function AdminShell() {
+  return <><Header /><Outlet /></>;
 }
-
-export default App;

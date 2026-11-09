@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { onboardingAPI } from "../Api/onboarding";
-import { getCurrentApp } from "../Api/helpers/helpers";
+import { getCurrentApp, getOrCreateCurrentApp } from "../Api/helpers/helpers";
 
 export function useScenario(tourId: string | undefined, uploadDraftHints: (id: string) => Promise<void>) {
   const navigate = useNavigate();
@@ -23,7 +23,10 @@ export function useScenario(tourId: string | undefined, uploadDraftHints: (id: s
     queryKey: ["scenario-edit-tour", tourId],
     enabled: !isNew,
     queryFn: async () => {
-      const tours = await onboardingAPI.getTours((await getCurrentApp()).id);
+      const app = await getCurrentApp();
+      if (!app) return null;
+  
+      const tours = await onboardingAPI.getTours(app.id);
       return tours.find((tour) => tour.id === tourId) ?? null;
     },
   });
@@ -42,55 +45,88 @@ export function useScenario(tourId: string | undefined, uploadDraftHints: (id: s
     setEditedScenario((prev) => updater(prev ?? scenario));
   };
 
-  const submitScenario = () => {
+  const validateScenario = () => {
     if (!scenario.name.trim()) {
-      setScenarioErrors({ name: "Введите название сценария"});
-      return;
+      setScenarioErrors({ name: "Введите название сценария" });
+      return false;
     }
-      setScenarioErrors({});
-      saveScenario.mutate();
+
+    setScenarioErrors({});
+    return true;
+  };
+
+  const persistScenario = async (): Promise<{ id: string }> => {
+    if (!scenario.name.trim()) throw new Error("Укажите название сценария");
+
+    const data = {
+      title: scenario.name.trim(),
+      description: scenario.description,
+      enabled: scenario.enabled,
+      priority: scenario.priority,
+    };
+
+    if (isNew) {
+      if (!scenario.targetPath.trim()) throw new Error("Укажите путь на сайте");
+  
+      let id = createdTourIdRef.current;
+      if (!id) {
+        const app = await getOrCreateCurrentApp();
+        if (!app) throw new Error("Сначала создайте приложение");
+
+        const tour = await onboardingAPI.createTour(app.id, {...data, target_path: scenario.targetPath.trim()});
+        id = tour.id;
+        createdTourIdRef.current = id;
+
+      } else {
+        await onboardingAPI.updateTourMeta(id, data);
+      }
+      await uploadDraftHints(id);
+      return { id };
+    }
+    await onboardingAPI.updateTourMeta(tourId!, data);
+    return { id: tourId! };
   };
 
   const saveScenario = useMutation({
-    mutationFn: async () => {
-      if (!scenario.name.trim()) throw new Error("Укажите название сценария");
+    mutationFn: persistScenario,
 
-      if (isNew) {
-        if (!scenario.targetPath.trim()) throw new Error("Укажите путь на сайте");
-
-        let id = createdTourIdRef.current;
-        if (!id) {
-          const tour = await onboardingAPI.createTour((await getCurrentApp()).id, {
-            title: scenario.name.trim(), description: scenario.description,
-            enabled: scenario.enabled, priority: scenario.priority,
-            target_path: scenario.targetPath.trim(),
-          });
-          id = tour.id;
-          createdTourIdRef.current = id;
-        } else {
-          await onboardingAPI.updateTourMeta(id, {
-            title: scenario.name.trim(), description: scenario.description,
-            enabled: scenario.enabled, priority: scenario.priority,
-          });
-        }
-        await uploadDraftHints(id);
-        return { id };
-      }
-      await onboardingAPI.updateTourMeta(tourId!, {
-        title: scenario.name.trim(), description: scenario.description,
-        enabled: scenario.enabled, priority: scenario.priority,
-      });
-      return { id: tourId! };
-    },
-    onSuccess: async (tour) => {
+    onSuccess: async () => {
       setSaveError("");
       await queryClient.invalidateQueries({ queryKey: ["tours"] });
-      if (isNew) navigate(`/admin/scenarios/${tour.id}/edit`, { replace: true });
-      else await queryClient.invalidateQueries({ queryKey: ["scenario-edit-tour", tourId] });
+      navigate("/admin/scenarios");
     },
-    onError: (error: Error) => setSaveError(error.message || "Не удалось сохранить сценарий и шаги"),
+
+    onError: (error: Error) => { setSaveError(error.message || "Не удалось сохранить сценарий"); }
   });
 
-  return { navigate, isNew, tourId, scenario, setScenario, saveError, saveScenario, tourQuery, scenarioErrors, setScenarioErrors, 
-    submitScenario };
+  const publishScenario = useMutation({
+    mutationFn: async () => {
+      const { id } = await persistScenario();
+      await onboardingAPI.publishTour(id);
+      return { id };
+    },
+
+    onSuccess: async () => {
+    setSaveError("");
+    await queryClient.invalidateQueries({ queryKey: ["tours"] });
+    navigate("/admin/scenarios", { replace: true });
+  },
+
+    onError: (error: Error) => { setSaveError(error.message || "Не удалось опубликовать сценарий"); }
+  });
+
+  const submitScenario = () => {
+    if (!validateScenario()) return;
+    setSaveError("");
+    saveScenario.mutate();
+  };
+
+  const submitPublish = () => {
+    if (!validateScenario()) return;
+    setSaveError("");
+    publishScenario.mutate();
+  };
+
+  return { navigate, isNew, tourId, scenario, setScenario, saveError, saveScenario, publishScenario, tourQuery,
+           scenarioErrors, setScenarioErrors, submitScenario, submitPublish };
 }

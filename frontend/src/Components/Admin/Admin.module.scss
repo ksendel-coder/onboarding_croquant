@@ -1,0 +1,12 @@
+.layout {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  background: #e8effd;
+
+  &__content {
+    position: relative;
+    z-index: 1;
+    min-height: 100dvh;
+  }
+}

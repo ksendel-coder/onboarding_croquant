@@ -19,6 +19,8 @@ export const onboardingAPI = {
 
   createTour: (appId: string, body: CreateTourRequest) =>
     api.post<TourListItem>("/tours", body, { params: { appId } }).then((r) => r.data),
+
+  publishTour: (tourId: string) => api.post(`/tours/${tourId}/publish`).then((res) => res.data),
   
 
   getHints: (tourId: string) => api.get<Hint[]>(`/tours/${tourId}/hints`).then((r) => r.data),
@@ -33,6 +35,7 @@ export const onboardingAPI = {
   reorderHints: (tourId: string, hintIds: string[]) =>
     api.put<Hint[]>(`/tours/${tourId}/hints/order`, { hint_ids: hintIds }).then((r) => r.data),
 
+  
   getTourAnalytics: (tourId: string, versionId: string) =>
     api.get<TourAnalytics>(`/tours/${tourId}/analytics`, {
       params: { version_id: versionId } }).then((response) => response.data)
