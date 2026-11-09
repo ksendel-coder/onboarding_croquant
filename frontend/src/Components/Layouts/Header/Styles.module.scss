@@ -30,18 +30,106 @@
     }
   }
 
-  &__profile {
+  &__account {
+    position: relative;
+    z-index: 50;
     width: 59px;
     height: 59px;
+    flex-shrink: 0;
+  }
+
+  &__profile {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 59px;
+    height: 59px;
+    padding: 0;
+    border: none;
     border-radius: 50%;
     background: linear-gradient(#d44daf, #a557dd);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    letter-spacing: 0;
-    line-height: 100%;
-    font-weight: 800;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  &__avatar {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  &__dropdown {
+    position: absolute;
+    top: 10px;
+    right: 38px;
+    font-weight: 700;
+    z-index: 1;
+    width: 220px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+    visibility: hidden;
+    transform: translateY(-5px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease,
+      visibility 0.2s;
+  }
+
+  &__account:hover &__dropdown,
+  &__account:focus-within &__dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  &__dropdownUser {
+    padding: 10px 12px;
+    color: #94a3b8;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 5px;
+  }
+
+  &__dropdownItem {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #0f172a;
+    font-family: inherit;
+    font-size: 18px;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      background: #f1f5ff;
+      color: #6366f1;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &:last-child {
+      color: #e11d48;
+
+      &:hover {
+        background: #ffe9e9;
+      }
+    }
   }
 }
