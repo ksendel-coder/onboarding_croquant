@@ -84,3 +84,20 @@ type PublishResult struct {
 	Version            int       `json:"version"`
 	NewDraftVersionId  uuid.UUID `json:"new_draft_version_id"`
 }
+
+type TourVersionHistoryItem struct {
+	Id          uuid.UUID  `json:"id"`
+	Version     int        `json:"version"`
+	Status      TourStatus `json:"status"`
+	StepsCount  int        `json:"steps_count"`
+	CreatedAt   time.Time  `json:"created_at"`
+	PublishedAt *time.Time `json:"published_at"`
+}
+
+type RestoreVersionResult struct {
+	TourId                uuid.UUID `json:"tour_id"`
+	RestoredFromVersionId uuid.UUID `json:"restored_from_version_id"`
+	DraftVersionId        uuid.UUID `json:"draft_version_id"`
+	DraftVersion          int       `json:"draft_version"`
+	StepsCount            int       `json:"steps_count"`
+}

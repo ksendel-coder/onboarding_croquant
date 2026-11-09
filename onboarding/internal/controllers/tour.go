@@ -22,6 +22,8 @@ type (
 		Archive(ctx *gin.Context)
 		Publish(ctx *gin.Context)
 		UpdateSettings(ctx *gin.Context)
+		ListVersions(ctx *gin.Context)
+		RestoreVersion(ctx *gin.Context)
 	}
 )
 
@@ -135,4 +137,53 @@ func (tc *TourController) UpdateSettings(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func (tc *TourController) ListVersions(ctx *gin.Context) {
+	tourId, err := pathUUID(ctx, "tourId")
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	versions, err := tc.domain.ListVersions(ctx.Request.Context(), tourId)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, versions)
+}
+
+func (tc *TourController) RestoreVersion(ctx *gin.Context) {
+	tourId, err := pathUUID(ctx, "tourId")
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	sourceVersionId, err := pathUUID(ctx, "versionId")
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	var body request.RestoreVersionRequest
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Error(&errs.BindingError{
+			Err: err, Zone: errs.Body, Code: http.StatusBadRequest,
+		})
+		return
+	}
+	if !body.ConfirmReplaceDraft {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "confirm_replace_draft must be true",
+		})
+		return
+	}
+
+	result, err := tc.domain.RestoreVersion(ctx.Request.Context(), tourId, sourceVersionId)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, result)
 }

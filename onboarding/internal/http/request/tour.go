@@ -62,3 +62,7 @@ func (p *TourSettingsPatch) ToDomain() domains.TourSettingsPatch {
 		AudienceOnlyNew:  p.AudienceOnlyNew,
 	}
 }
+
+type RestoreVersionRequest struct {
+	ConfirmReplaceDraft bool `json:"confirm_replace_draft"`
+}

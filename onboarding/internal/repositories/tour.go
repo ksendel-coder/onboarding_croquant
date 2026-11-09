@@ -607,3 +607,165 @@ func (tr *TourRepository) UpdateSettings(
 
 	return tx.Commit(ctx)
 }
+
+func (tr *TourRepository) ListVersions(ctx context.Context, tourId uuid.UUID) ([]domains.TourVersionHistoryItem, error) {
+	fail := func(message string, status int) error {
+		return &domains.LogicError{
+			Err: errors.New(message), Stage: "tour version history", Code: status,
+		}
+	}
+
+	var exists bool
+	if err := tr.pool.QueryRow(ctx, `
+        SELECT EXISTS(SELECT 1 FROM tours WHERE id=$1 AND archived_at IS NULL)
+    `, tourId).Scan(&exists); err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, fail("tour not found", http.StatusNotFound)
+	}
+
+	rows, err := tr.pool.Query(ctx, `
+        SELECT v.id, v.version, v.status, v.created_at, v.published_at,
+               (SELECT COUNT(*) FROM hints h WHERE h.tour_version_id = v.id)
+        FROM tour_versions v
+        WHERE v.tour_id = $1
+        ORDER BY v.version DESC
+    `, tourId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]domains.TourVersionHistoryItem, 0)
+	for rows.Next() {
+		var item domains.TourVersionHistoryItem
+		var status string
+		if err := rows.Scan(
+			&item.Id, &item.Version, &status,
+			&item.CreatedAt, &item.PublishedAt, &item.StepsCount,
+		); err != nil {
+			return nil, err
+		}
+		item.Status = domains.TourStatus(status)
+		result = append(result, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (tr *TourRepository) RestoreVersion(
+	ctx context.Context,
+	tourId, sourceVersionId uuid.UUID,
+) (*domains.RestoreVersionResult, error) {
+	fail := func(message string, status int) error {
+		return &domains.LogicError{
+			Err: errors.New(message), Stage: "tour version restore", Code: status,
+		}
+	}
+
+	tx, err := tr.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Та же блокировка tours, что и в Publish(): публикация и восстановление одного сценария не смогут выполняться одновременно.
+	var lockedId uuid.UUID
+	err = tx.QueryRow(ctx, `
+        SELECT id FROM tours
+        WHERE id=$1 AND archived_at IS NULL
+        FOR UPDATE
+    `, tourId).Scan(&lockedId)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fail("tour not found", http.StatusNotFound)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Источник - только ранее опубликованная, теперь архивная версия именно этого сценария. Архивный черновик использовать нельзя.
+	var sourceId uuid.UUID
+	err = tx.QueryRow(ctx, `
+        SELECT id FROM tour_versions
+        WHERE id=$1 AND tour_id=$2
+          AND status='archived' AND published_at IS NOT NULL
+        FOR SHARE
+    `, sourceVersionId, tourId).Scan(&sourceId)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fail("archived published version not found", http.StatusNotFound)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Получаем текущий draft с блокировкой.
+	var draftId uuid.UUID
+	var draftVersion int
+	err = tx.QueryRow(ctx, `
+        SELECT id, version FROM tour_versions
+        WHERE tour_id=$1 AND status='draft'
+        FOR UPDATE
+    `, tourId).Scan(&draftId, &draftVersion)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fail("draft not found", http.StatusConflict)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Обновляем настройки текущего draft, НЕ меняем id/version/status и не трогаем published_at/archived_at.
+	tag, err := tx.Exec(ctx, `
+        UPDATE tour_versions AS dst
+        SET trigger_type       = src.trigger_type,
+            target_path        = src.target_path,
+            audience_show_once = src.audience_show_once,
+            audience_max_shows = src.audience_max_shows,
+            audience_only_new  = src.audience_only_new,
+            trigger_config     = src.trigger_config,
+            audience_rules     = src.audience_rules
+        FROM tour_versions AS src
+        WHERE dst.id = $1 AND dst.status='draft'
+          AND src.id = $2 AND src.tour_id = dst.tour_id
+    `, draftId, sourceId)
+	if err != nil {
+		return nil, err
+	}
+	if tag.RowsAffected() != 1 {
+		return nil, fail("draft update failed", http.StatusConflict)
+	}
+
+	// 5. Заменяем подсказки ТОЛЬКО черновика. Старые опубликованные версии и их hints остаются нетронутыми.
+	_, err = tx.Exec(ctx, `
+        DELETE FROM hints WHERE tour_version_id = $1
+    `, draftId)
+	if err != nil {
+		return nil, err
+	}
+
+	tag, err = tx.Exec(ctx, `
+        INSERT INTO hints (tour_version_id, step, title, content, selector, placement)
+        SELECT $1, step, title, content, selector, placement
+        FROM hints
+        WHERE tour_version_id = $2
+        ORDER BY step
+    `, draftId, sourceId)
+	if err != nil {
+		return nil, err
+	}
+
+	// 6. Если любой запрос выше не прошёл, deferred Rollback восстановит исходный draft целиком.
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return &domains.RestoreVersionResult{
+		TourId:                tourId,
+		RestoredFromVersionId: sourceId,
+		DraftVersionId:        draftId,
+		DraftVersion:          draftVersion,
+		StepsCount:            int(tag.RowsAffected()),
+	}, nil
+}
