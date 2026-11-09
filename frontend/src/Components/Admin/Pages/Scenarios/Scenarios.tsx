@@ -76,7 +76,14 @@ function ScenariosComponent() {
           </tr>
         </thead>
         <tbody>
-          {filteredScenarios.map((item) => (
+           {filteredScenarios.length === 0 ? (
+              <tr>
+                <td colSpan={6} className={styles.page__table__empty}>
+                  {scenarios.length === 0 ? "Сценариев пока нет. Создайте свой первый сценарий" : "По вашему запросу ничего не найдено"}
+                </td>
+              </tr>
+          ) : (
+          filteredScenarios.map((item) => (
             <tr className={styles.page__table__row} key={item.id}>
               <td className={styles.page__table__row__name}>{item.title}</td>
 
@@ -113,7 +120,7 @@ function ScenariosComponent() {
                   </Button>
                 </td>
               </tr>
-          ))}
+          )))}
         </tbody>
       </table>
     </main>

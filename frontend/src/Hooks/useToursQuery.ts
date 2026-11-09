@@ -7,7 +7,8 @@ export function useToursQuery() {
     queryKey: ["tours"],
     queryFn: async () => {
       const app = await getCurrentApp();
-      return onboardingAPI.getTours((app).id);
+      if (!app) return [];
+      return onboardingAPI.getTours(app.id);
     },
   });
 }

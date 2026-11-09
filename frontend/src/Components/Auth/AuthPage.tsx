@@ -5,6 +5,9 @@ import { useAuth } from "./AuthContext";
 import logo from "/logo.svg";
 import styles from "./AuthPage.module.scss";
 import { Checkbox } from "../UI/Checkbox";
+import diagram from "/diagram.svg";
+import clock from "/clock.svg";
+import money from "/money.svg";
 
 type Mode = "login" | "register";
 
@@ -90,9 +93,15 @@ export function AuthPage({ mode }: { mode: Mode }) {
         <div className={styles.auth__blurFour} aria-hidden="true" />
         <div className={styles.auth__orbit} aria-hidden="true" />
         <div className={styles.auth__orbitBig} aria-hidden="true" />
-        <div className={`${styles.auth__float} ${styles.auth__float_top}`} aria-hidden="true">▥</div>
-        <div className={`${styles.auth__float} ${styles.auth__float_middle}`} aria-hidden="true">◴</div>
-        <div className={`${styles.auth__float} ${styles.auth__float_bottom}`} aria-hidden="true">▤</div>
+        <div className={`${styles.auth__float} ${styles.auth__float_top}`} aria-hidden="true">
+          <img src={diagram} />
+        </div>
+        <div className={`${styles.auth__float} ${styles.auth__float_middle}`} aria-hidden="true">
+          <img src={clock} />
+        </div>
+        <div className={`${styles.auth__float} ${styles.auth__float_bottom}`} aria-hidden="true">
+          <img src={money} />
+        </div>
         <span className={styles.auth__dot} aria-hidden="true" />
 
         <section className={styles.auth__promo} aria-label="О продукте">
