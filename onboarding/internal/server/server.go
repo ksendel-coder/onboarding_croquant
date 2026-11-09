@@ -153,6 +153,14 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 					"/analytics",
 					createStruct.EventController.Analytics,
 				)
+
+				tourID.GET(
+					"/versions",
+					createStruct.TourController.ListVersions)
+
+				tourID.POST(
+					"/versions/:versionId/restore",
+					createStruct.TourController.RestoreVersion)
 			}
 		}
 	}
