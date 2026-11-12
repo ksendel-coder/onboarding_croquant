@@ -64,9 +64,9 @@ func (ar *AuthRepository) UserByEmail(
 	err := ar.pool.QueryRow(ctx, `
 		SELECT
 			id,
-			email,
 			first_name,
 			last_name,
+			email,
 			password_hash,
 			created_at
 		FROM users

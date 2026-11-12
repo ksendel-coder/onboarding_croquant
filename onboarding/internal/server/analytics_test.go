@@ -22,7 +22,7 @@ type analyticsAuthStub struct {
 	allowed bool
 }
 
-func (a *analyticsAuthStub) Register(_ context.Context, _ string, _ string) (*domains.User, string, error) {
+func (a *analyticsAuthStub) Register(_ context.Context, _ string, _ string, _ string, _ string) (*domains.User, string, error) {
 	return nil, "", nil
 }
 func (a *analyticsAuthStub) Login(_ context.Context, _ string, _ string) (*domains.User, string, error) {
