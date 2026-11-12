@@ -9,6 +9,8 @@ import (
 
 type User struct {
 	Id        uuid.UUID `json:"id" format:"uuid"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at" format:"date-time"`
 }
@@ -27,6 +29,8 @@ func NewUser(
 
 	return &User{
 		Id:        user.Id,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
 	}

@@ -52,6 +52,8 @@ func (ac *AuthController) Register(
 
 	user, token, err := ac.domain.Register(
 		ctx.Request.Context(),
+		body.FirstName,
+		body.LastName,
 		body.Email,
 		body.Password,
 	)
