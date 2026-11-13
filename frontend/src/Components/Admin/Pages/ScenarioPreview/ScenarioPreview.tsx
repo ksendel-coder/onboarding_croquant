@@ -120,16 +120,14 @@ export function ScenarioPreview() {
         data-preview-content="true" 
         dangerouslySetInnerHTML={ pageHtml !== null ? { __html: pageHtml } : undefined}
       />
-      
+
       {pageHtml === null && <p>Загружаем тестовую страницу...</p>}
       {pageHtml !== null && hints.length === 0 && (<p>В сценарии пока нет шагов.</p>)}
 
       {pageHtml !== null && currentHint && !isFinished && (
-        <>
-          <Hint key={currentHint.id} hint={currentHint} index={currentIndex} total={hints.length} onNext={handleNext}
-                onClose={handleSkip} busy={false} preview
-          />
-        </>
+        <Hint key={currentHint.id} hint={currentHint} index={currentIndex} total={hints.length} onNext={handleNext}
+              onClose={handleSkip} busy={false} preview
+        />
       )}
     </main>
   );

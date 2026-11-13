@@ -37,7 +37,10 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
       let element: Element | null = null;
 
       try {
-        if (hint.selector) element = document.querySelector(hint.selector);
+        if (hint.selector) {
+          const root = preview ? document.querySelector('[data-preview-content="true"]') : document;
+          element = root?.querySelector(hint.selector) ?? null;
+        }
       } catch {
         element = null;
       }
