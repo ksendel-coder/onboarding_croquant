@@ -7,11 +7,11 @@
   border-radius: 20px;
   background: #ffffff;
   color: #181818;
-  border: 3px solid #696CF1;
+  border: 3px solid #696cf1;
 
   button:not(.close) {
-    background: linear-gradient(95.06deg, #686BF1 0%, #8D90F4 100%);
-    color: #FFFFFF;
+    background: linear-gradient(95.06deg, #686bf1 0%, #8d90f4 100%);
+    color: #ffffff;
     border-radius: 10px;
     font-size: 20px;
     cursor: pointer;
@@ -27,18 +27,42 @@
     margin: 15px 0 25px;
     font-weight: 500;
   }
-}
 
-.close {
-  position: absolute;
-  right: 13px;
-  top: -5px;
-  border: 0;
-  background: transparent;
-  font-size: 30px;
-  cursor: pointer;
-}
+  &__close {
+    position: absolute;
+    right: 13px;
+    top: -5px;
+    border: 0;
+    background: transparent;
+    font-size: 30px;
+    cursor: pointer;
+  }
 
+  &__header {
+    display: grid;
+    grid-template-columns: 1fr 46px;
+    gap: 40px;
+    font-weight: 700;
+
+    &__title {
+      flex-wrap: nowrap;
+      font-size: 25px;
+    }
+
+    &__count {
+      flex-wrap: nowrap;
+      color: #6366f1;
+      font-size: 25px;
+    }
+  }
+
+  &__warning {
+    margin: 8px 0 12px;
+    color: #b45309;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+}
 
 .backdrop {
   position: fixed;
@@ -51,39 +75,10 @@
 .spotlight {
   position: fixed;
   z-index: 9998;
-
   border-radius: 8px;
   outline: 2px solid #fff;
-
   box-shadow:
     0 0 0 9999px rgba(0, 0, 0, 0.6),
     0 0 20px rgba(0, 0, 0, 0.15);
-
   pointer-events: none;
 }
-
-.warning {
-  margin: 8px 0 12px;
-  color: #b45309;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
-.header {
-  display: grid;
-  grid-template-columns: 1fr 46px;
-  gap: 40px;
-  font-weight: 700;
-
-  &__title {
-    flex-wrap: nowrap;
-    font-size: 25px;
-  }
-
-  &__count {
-    flex-wrap: nowrap;
-    color: #6366F1;
-    font-size: 25px;
-  }
-}
-

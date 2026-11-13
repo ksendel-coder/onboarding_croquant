@@ -159,15 +159,15 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
       )}
 
       <aside className={styles.hint} style={{top: position.top, left: position.left}}>
-        <button className={styles.close} type="button" onClick={onClose} disabled={busy}>×</button>
-        <div className={styles.header}>
-          <h3 className={styles.header__title}>{hint.title}</h3>
-          <p className={styles.header__count}>{index + 1}/{total}</p>
+        <button className={styles.hint__close} type="button" onClick={onClose} disabled={busy}>×</button>
+        <div className={styles.hint__header}>
+          <h3 className={styles.hint__header__title}>{hint.title}</h3>
+          <p className={styles.hint__header__count}>{index + 1}/{total}</p>
         </div>
         <p className={styles.hint__content}>{hint.content}</p>
 
         {preview && !highlight && (
-          <p className={styles.warning}>Элемент не найден: <code>{hint.selector}</code></p>
+          <p className={styles.hint__warning}>Элемент не найден: <code>{hint.selector}</code></p>
         )}
 
         <button type="button" onClick={onNext} disabled={busy}>{index === total - 1 ? "Завершить" : "Далее"}</button>
