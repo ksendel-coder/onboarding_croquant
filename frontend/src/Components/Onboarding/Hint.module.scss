@@ -8,8 +8,9 @@
   background: #ffffff;
   color: #181818;
   border: 3px solid #696cf1;
+  box-sizing: border-box;
 
-  button:not(.close) {
+  button:not(.hint__close) {
     background: linear-gradient(95.06deg, #686bf1 0%, #8d90f4 100%);
     color: #ffffff;
     border-radius: 10px;

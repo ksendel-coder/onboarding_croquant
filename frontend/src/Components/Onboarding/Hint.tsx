@@ -111,23 +111,27 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
     };
     update();
 
-    let target: Element | null = null;
+    const handleTargetClick = (event: MouseEvent) => {
+      if (!preview || busy || !hint.selector) return;
 
-    try {
-      if (hint.selector) target = document.querySelector(hint.selector);
-    } catch {
-      target = null;
-    }
+      const clickedElement = event.target;
+      if (!(clickedElement instanceof Element)) return;
 
-    const handleTargetClick = (event: Event) => {
-      if (!preview || busy) return;
+      let target: Element | null = null;
+
+      try {
+        target = clickedElement.closest(hint.selector);
+      } catch {
+        return;
+      }
+      if (!target) return;
 
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
       onNextRef.current();
     };
-
-    if (preview && target) target.addEventListener("click", handleTargetClick, true);
+    if (preview) document.addEventListener("click", handleTargetClick, true);
 
     const observer = new MutationObserver(update);
     observer.observe(document.body, { childList: true, subtree: true });
@@ -139,7 +143,7 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
       observer.disconnect();
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
-      if (target) target.removeEventListener("click", handleTargetClick, true);
+      if (preview) document.removeEventListener("click", handleTargetClick, true);
     };
   }, [hint.selector, hint.placement, preview, busy]);
 

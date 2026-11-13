@@ -53,7 +53,6 @@ export function ScenarioPreview() {
   };
 
   const handleSkip = () => { setIsFinished(true); };
-  const handleBack = () => { setStepIndex((prev) => Math.max(0, prev - 1)); };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -77,11 +76,6 @@ export function ScenarioPreview() {
     void loadPage();
     return () => { controller.abort(); };
   }, []);
-
-  useEffect(() => {
-    if (!pageRef.current || pageHtml === null) return;
-    pageRef.current.innerHTML = pageHtml;
-  }, [pageHtml]);
 
   if (query.isPending) {
     return (
@@ -133,7 +127,6 @@ export function ScenarioPreview() {
 
       {pageHtml !== null && currentHint && !isFinished && (
         <>
-          {currentIndex > 0 && ( <button type="button" className={styles.page__back} onClick={handleBack}>← Назад</button>)}
           <Hint key={currentHint.id} hint={currentHint} index={currentIndex} total={hints.length} onNext={handleNext}
                 onClose={handleSkip} busy={false} preview
           />
