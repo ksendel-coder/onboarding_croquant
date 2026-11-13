@@ -1,7 +1,7 @@
 .hint {
   position: fixed;
   z-index: 10000;
-  width: 358px;
+  width: min(358px, calc(100vw - 32px));
   padding: 32px;
   padding-bottom: 20px;
   border-radius: 20px;

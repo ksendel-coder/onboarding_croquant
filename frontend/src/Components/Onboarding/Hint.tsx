@@ -42,7 +42,7 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
         element = null;
       }
 
-      const width = Math.min(340, window.innerWidth - 32);
+      const width = Math.min(358, window.innerWidth - 32);
       const height = 200;
 
       if (!element) {
@@ -116,8 +116,9 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
 
       const clickedElement = event.target;
       if (!(clickedElement instanceof Element)) return;
+      if (clickedElement.closest(`.${styles.hint}`) || clickedElement.closest('[data-preview-control="true"]')) return;
 
-      let target: Element | null = null;
+      let target: Element | null;
 
       try {
         target = clickedElement.closest(hint.selector);

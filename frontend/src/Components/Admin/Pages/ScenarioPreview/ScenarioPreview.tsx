@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
@@ -25,7 +25,6 @@ function errorText(error: unknown): string {
 export function ScenarioPreview() {
   const { tourId } = useParams<{ tourId: string }>();
   const navigate = useNavigate();
-  const pageRef = useRef<HTMLDivElement>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [pageHtml, setPageHtml] = useState<string | null>(null);
@@ -99,7 +98,7 @@ export function ScenarioPreview() {
     return (
       <main className={styles.page}>
         <p>Backend не подтвердил режим предпросмотра.</p>
-        <button type="button" onClick={close}>Назад</button>
+        <button type="button" onClick={close} data-preview-control="true">Назад к сценариям</button>
       </main>
     );
   }
@@ -108,20 +107,15 @@ export function ScenarioPreview() {
     return (
       <main className={styles.page}>
         <p>Не удалось загрузить тестовую страницу.</p>
-        <button type="button" onClick={close}>Назад к сценариям</button>
+        <button type="button" onClick={close} data-preview-control="true">Назад к сценариям</button>
       </main>
     );
   }
 
   return (
     <main className={styles.page}>
-      <button type="button" className={styles.page__back} onClick={close}>← Назад к сценариям</button>
-      <div
-        ref={pageRef}
-        className={styles.page__content}
-        dangerouslySetInnerHTML={ pageHtml !== null ? { __html: pageHtml } : undefined}
-      />
-
+      <button type="button" className={styles.page__back} onClick={close} data-preview-control="true">← Назад к сценариям</button>
+      <div className={styles.page__content} dangerouslySetInnerHTML={ pageHtml !== null ? { __html: pageHtml } : undefined}/>
       {pageHtml === null && <p>Загружаем тестовую страницу...</p>}
       {pageHtml !== null && hints.length === 0 && (<p>В сценарии пока нет шагов.</p>)}
 
