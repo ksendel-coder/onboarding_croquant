@@ -1,5 +1,5 @@
 import { api } from "./api";
-import type { App, CreateHintRequest, CreateTourRequest, Hint, HintPatchRequest, TourAnalytics, TourListItem, UpdateTourMetaRequest } from "../Types";
+import type { App, CreateHintRequest, CreateTourRequest, Hint, HintPatchRequest, TourAnalytics, TourListItem, TourPreviewResponse, UpdateTourMetaRequest } from "../Types";
 
 export const onboardingAPI = {
   getApps: () => api.get<App[]>("/apps").then((res) => res.data),
@@ -21,7 +21,10 @@ export const onboardingAPI = {
     api.post<TourListItem>("/tours", body, { params: { appId } }).then((r) => r.data),
 
   publishTour: (tourId: string) => api.post(`/tours/${tourId}/publish`).then((res) => res.data),
+
+  getTourPreview: (tourId: string) => api.get<TourPreviewResponse>(`/tours/${tourId}/preview`).then((response) => response.data),
   
+
 
   getHints: (tourId: string) => api.get<Hint[]>(`/tours/${tourId}/hints`).then((r) => r.data),
 
@@ -35,6 +38,7 @@ export const onboardingAPI = {
   reorderHints: (tourId: string, hintIds: string[]) =>
     api.put<Hint[]>(`/tours/${tourId}/hints/order`, { hint_ids: hintIds }).then((r) => r.data),
 
+  
   
   getTourAnalytics: (tourId: string, versionId: string) =>
     api.get<TourAnalytics>(`/tours/${tourId}/analytics`, {
