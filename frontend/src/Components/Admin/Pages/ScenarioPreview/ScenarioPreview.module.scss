@@ -1,0 +1,41 @@
+.page {
+  min-height: 100vh;
+  width: 100%;
+  background: #ffffff;
+
+  &__content {
+    padding: 32px;
+    font-family: Arial, sans-serif;
+
+    :global(.panel) {
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+    }
+
+    button {
+      padding: 12px 20px;
+      cursor: pointer;
+    }
+  }
+
+  &__back {
+    position: fixed;
+    top: 30px;
+    right: 32px;
+    z-index: 10001;
+    padding: 10px 16px;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    background: #1e293b;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: #334155;
+    }
+  }
+}

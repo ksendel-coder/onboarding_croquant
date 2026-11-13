@@ -5,12 +5,12 @@ import cn from "classnames";
 import { Trash2, Eye, Clock3 } from "lucide-react";
 
 type Props = {
-  onEdit: () => void;
+  onPreview: () => void;
   onPublish: () => void;
   onDelete: () => void;
 };
 
-export function ScenarioActions({ onEdit, onPublish, onDelete }: Props) {
+export function ScenarioActions({ onPreview, onPublish, onDelete }: Props) {
   const [open, setOpen] = useState(false);
   const [openUp, setOpenUp] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,7 @@ export function ScenarioActions({ onEdit, onPublish, onDelete }: Props) {
 
       {open && (
         <div className={cn(styles.actions__menu, openUp && styles.actions__menu_up)} role="menu">
-          <button type="button" role="menuitem" onClick={() => handleAction(onEdit)}>
+          <button type="button" role="menuitem" onClick={() => handleAction(onPreview)}>
             <Eye size={20} color="#94A3B8" />
             Предпросмотр
           </button>

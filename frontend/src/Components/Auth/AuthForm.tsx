@@ -43,7 +43,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
     try {
       const credentials = { email: email.trim(), password };
-      if (isRegister) await register(credentials);
+      if (isRegister) await register({...credentials, first_name: firstName.trim(), last_name: lastName.trim()});
       else await login(credentials);
 
       const from = (location.state as { from?: unknown } | null)?.from;
