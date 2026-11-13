@@ -117,7 +117,7 @@ function ScenariosComponent() {
                     Редактировать
                   </Button>
                   <ScenarioActions
-                    onEdit={() => handleEdit(item.id)}
+                    onPreview={() => navigate(`/admin/scenarios/${item.id}/preview`)}
                     onPublish={() => navigate(`/admin/scenarios/${item.id}/edit`)}
                     onDelete={() => {handleDelete(item.id)}}
                   />

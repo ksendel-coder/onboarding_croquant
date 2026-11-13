@@ -10,6 +10,7 @@ import { AnalyticsDetail } from "../Components/Admin/Pages/Analytics/AnalyticsDe
 import { AuthProvider } from "../Components/Auth/AuthProvider";
 import { AuthPage } from "../Components/Auth/AuthPage";
 import { ProtectedRoute } from "../Components/Auth/ProtectedRoute";
+import { ScenarioPreview } from "../Components/Admin/Pages/ScenarioPreview/ScenarioPreview";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ export default function App() {
                 <Route element={<AdminLayoutEmpty />}>
                   <Route path="scenarios/new" element={<ScenarioEditor />} />
                   <Route path="scenarios/:tourId/edit" element={<ScenarioEditor />} />
+                  <Route path="scenarios/:tourId/preview" element={<ScenarioPreview />} />
                   <Route path="analytics/:tourId" element={<AnalyticsDetail />} />
                 </Route>
               </Route>
