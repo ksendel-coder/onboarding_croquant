@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { Hint as HintType } from "../../Types";
 import styles from "./Hint.module.scss";
 
@@ -36,6 +36,11 @@ export function Hint({
 }: Props) {
   const [position, setPosition] = useState<Position | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
+  const onNextRef = useRef(onNext);
+
+  useEffect(() => {
+    onNextRef.current = onNext;
+  }, [onNext]);
 
   useEffect(() => {
     const update = () => {
@@ -135,6 +140,30 @@ export function Hint({
 
     update();
 
+    let target: Element | null = null;
+
+    try {
+      if (hint.selector) {
+        target = document.querySelector(hint.selector);
+      }
+    } catch {
+      target = null;
+    }
+
+    const handleTargetClick = (event: Event) => {
+      if (!preview || busy) return;
+
+      // Не выполняем реальное действие кнопки или ссылки.
+      event.preventDefault();
+      event.stopPropagation();
+
+      onNextRef.current();
+    };
+
+    if (preview && target) {
+      target.addEventListener("click", handleTargetClick, true);
+    }
+
     const observer = new MutationObserver(update);
 
     observer.observe(document.body, {
@@ -149,8 +178,9 @@ export function Hint({
       observer.disconnect();
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
+      if (target) target.removeEventListener("click", handleTargetClick, true);
     };
-  }, [hint.selector, hint.placement, preview]);
+  }, [hint.selector, hint.placement, preview, busy]);
 
   if (!position) return null;
 
