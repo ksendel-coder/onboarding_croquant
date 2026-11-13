@@ -25,31 +25,19 @@ interface Highlight {
   height: number;
 }
 
-export function Hint({
-  hint,
-  index,
-  total,
-  onNext,
-  onClose,
-  busy,
-  preview = false,
-}: Props) {
+export function Hint({ hint, index, total, onNext, onClose, busy, preview = false }: Props) {
   const [position, setPosition] = useState<Position | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const onNextRef = useRef(onNext);
 
-  useEffect(() => {
-    onNextRef.current = onNext;
-  }, [onNext]);
+  useEffect(() => { onNextRef.current = onNext; }, [onNext]);
 
   useEffect(() => {
     const update = () => {
       let element: Element | null = null;
 
       try {
-        if (hint.selector) {
-          element = document.querySelector(hint.selector);
-        }
+        if (hint.selector) element = document.querySelector(hint.selector);
       } catch {
         element = null;
       }
@@ -68,26 +56,16 @@ export function Hint({
         } else {
           setPosition(null);
         }
-
         return;
       }
 
       const rect = element.getBoundingClientRect();
 
-      if (preview) {
-        setHighlight({
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-        });
-      } else {
-        setHighlight(null);
-      }
+      if (preview) setHighlight({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+      else setHighlight(null);
 
       const centerX = rect.left + rect.width / 2 - width / 2;
       const centerY = rect.top + rect.height / 2 - height / 2;
-
       let left = centerX;
       let top = rect.bottom + 12;
 
@@ -127,25 +105,16 @@ export function Hint({
       }
 
       setPosition({
-        left: Math.max(
-          16,
-          Math.min(left, window.innerWidth - width - 16)
-        ),
-        top: Math.max(
-          16,
-          Math.min(top, window.innerHeight - height - 16)
-        ),
+        left: Math.max(16, Math.min(left, window.innerWidth - width - 16)),
+        top: Math.max(16, Math.min(top, window.innerHeight - height - 16)),
       });
     };
-
     update();
 
     let target: Element | null = null;
 
     try {
-      if (hint.selector) {
-        target = document.querySelector(hint.selector);
-      }
+      if (hint.selector) target = document.querySelector(hint.selector);
     } catch {
       target = null;
     }
@@ -153,23 +122,15 @@ export function Hint({
     const handleTargetClick = (event: Event) => {
       if (!preview || busy) return;
 
-      // Не выполняем реальное действие кнопки или ссылки.
       event.preventDefault();
       event.stopPropagation();
-
       onNextRef.current();
     };
 
-    if (preview && target) {
-      target.addEventListener("click", handleTargetClick, true);
-    }
+    if (preview && target) target.addEventListener("click", handleTargetClick, true);
 
     const observer = new MutationObserver(update);
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
@@ -191,54 +152,25 @@ export function Hint({
           {highlight ? (
             <div
               className={styles.spotlight}
-              style={{
-                top: highlight.top,
-                left: highlight.left,
-                width: highlight.width,
-                height: highlight.height,
-              }}
+              style={{top: highlight.top, left: highlight.left, width: highlight.width, height: highlight.height}}
             />
-          ) : (
-            <div className={styles.backdrop} />
-          )}
+          ) : (<div className={styles.backdrop} />)}
         </>
       )}
 
-      <aside
-        className={styles.hint}
-        style={{
-          top: position.top,
-          left: position.left,
-        }}
-        role="dialog"
-        aria-label={hint.title}
-      >
-        <button
-          className={styles.close}
-          type="button"
-          aria-label="Закрыть"
-          onClick={onClose}
-          disabled={busy}
-        >
-          ×
-        </button>
-
+      <aside className={styles.hint} style={{top: position.top, left: position.left}}>
+        <button className={styles.close} type="button" onClick={onClose} disabled={busy}>×</button>
         <div className={styles.header}>
           <h3 className={styles.header__title}>{hint.title}</h3>
           <p className={styles.header__count}>{index + 1}/{total}</p>
         </div>
-
         <p className={styles.hint__content}>{hint.content}</p>
 
         {preview && !highlight && (
-          <p className={styles.warning}>
-            Элемент не найден: <code>{hint.selector}</code>
-          </p>
+          <p className={styles.warning}>Элемент не найден: <code>{hint.selector}</code></p>
         )}
 
-        <button type="button" onClick={onNext} disabled={busy}>
-          {index === total - 1 ? "Завершить" : "Далее"}
-        </button>
+        <button type="button" onClick={onNext} disabled={busy}>{index === total - 1 ? "Завершить" : "Далее"}</button>
       </aside>
     </>
   );

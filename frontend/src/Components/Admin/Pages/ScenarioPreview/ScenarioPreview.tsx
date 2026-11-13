@@ -1,12 +1,9 @@
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
-
 import { onboardingAPI } from "../../../../Api/onboarding";
 import { Hint } from "../../../Onboarding/Hint";
-
 import styles from "./ScenarioPreview.module.scss";
 
 function errorText(error: unknown): string {
@@ -22,17 +19,15 @@ function errorText(error: unknown): string {
         return "У сценария нет черновика для предпросмотра.";
     }
   }
-
   return "Не удалось загрузить предпросмотр.";
 }
 
 export function ScenarioPreview() {
   const { tourId } = useParams<{ tourId: string }>();
   const navigate = useNavigate();
-
   const pageRef = useRef<HTMLDivElement>(null);
-
   const [stepIndex, setStepIndex] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
   const [pageHtml, setPageHtml] = useState<string | null>(null);
   const [pageError, setPageError] = useState(false);
 
@@ -43,39 +38,23 @@ export function ScenarioPreview() {
     retry: false,
   });
 
-  const hints = useMemo(
-    () =>
-      [...(query.data?.tour.hints ?? [])].sort(
-        (a, b) => a.step - b.step
-      ),
-    [query.data?.tour.hints]
-  );
-
-  const currentIndex = Math.min(
-    stepIndex,
-    Math.max(0, hints.length - 1)
-  );
-
+  const hints = useMemo(() => [...(query.data?.tour.hints ?? [])].sort((a, b) => a.step - b.step),[query.data?.tour.hints]);
+  const currentIndex = Math.min(stepIndex, Math.max(0, hints.length - 1));
   const currentHint = hints[currentIndex];
 
-  const close = () => {
-    navigate("/admin/scenarios");
-  };
+  const close = () => { navigate("/admin/scenarios"); };
 
   const handleNext = () => {
     if (currentIndex >= hints.length - 1) {
-      close();
-      return;
+        setIsFinished(true);
+        return;
     }
-
     setStepIndex((prev) => prev + 1);
   };
 
-  const handleBack = () => {
-    setStepIndex((prev) => Math.max(0, prev - 1));
-  };
+  const handleSkip = () => { setIsFinished(true); };
+  const handleBack = () => { setStepIndex((prev) => Math.max(0, prev - 1)); };
 
-  // Загружаем существующую тестовую HTML-страницу.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -84,48 +63,23 @@ export function ScenarioPreview() {
       setPageError(false);
 
       try {
-        const response = await fetch("/picker-preview.html", {
-          signal: controller.signal,
-        });
+        const response = await fetch("/picker-preview.html", { signal: controller.signal });
+        if (!response.ok) throw new Error("Не удалось загрузить тестовую страницу");
 
-        if (!response.ok) {
-          throw new Error("Не удалось загрузить тестовую страницу");
-        }
+        const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+        doc.querySelectorAll("script").forEach((script) => { script.remove(); });
 
-        const html = await response.text();
-
-        const doc = new DOMParser().parseFromString(
-          html,
-          "text/html"
-        );
-
-        // Удаляем скрипты из тестовой страницы.
-        doc.querySelectorAll("script").forEach((script) => {
-          script.remove();
-        });
-
-        if (!controller.signal.aborted) {
-          setPageHtml(doc.body.innerHTML);
-        }
+        if (!controller.signal.aborted) setPageHtml(doc.body.innerHTML);
       } catch {
-        if (!controller.signal.aborted) {
-          setPageError(true);
-        }
+        if (!controller.signal.aborted) setPageError(true);
       }
     }
-
     void loadPage();
-
-    return () => {
-      controller.abort();
-    };
+    return () => { controller.abort(); };
   }, []);
 
-  // Добавляем HTML в DOM до отображения Hint,
-  // чтобы document.querySelector находил элементы.
   useEffect(() => {
     if (!pageRef.current || pageHtml === null) return;
-
     pageRef.current.innerHTML = pageHtml;
   }, [pageHtml]);
 
@@ -141,17 +95,8 @@ export function ScenarioPreview() {
     return (
       <main className={styles.page}>
         <p role="alert">{errorText(query.error)}</p>
-
-        <button
-          type="button"
-          onClick={() => void query.refetch()}
-        >
-          Повторить запрос
-        </button>
-
-        <button type="button" onClick={close}>
-          Назад к сценариям
-        </button>
+        <button type="button" onClick={() => void query.refetch()}>Повторить запрос</button>
+        <button type="button" onClick={close}>Назад к сценариям</button>
       </main>
     );
   }
@@ -159,13 +104,8 @@ export function ScenarioPreview() {
   if (!query.data.preview) {
     return (
       <main className={styles.page}>
-        <p role="alert">
-          Backend не подтвердил режим предпросмотра.
-        </p>
-
-        <button type="button" onClick={close}>
-          Назад
-        </button>
+        <p>Backend не подтвердил режим предпросмотра.</p>
+        <button type="button" onClick={close}>Назад</button>
       </main>
     );
   }
@@ -173,59 +113,29 @@ export function ScenarioPreview() {
   if (pageError) {
     return (
       <main className={styles.page}>
-        <p role="alert">
-          Не удалось загрузить тестовую страницу.
-        </p>
-
-        <button type="button" onClick={close}>
-          Назад к сценариям
-        </button>
+        <p>Не удалось загрузить тестовую страницу.</p>
+        <button type="button" onClick={close}>Назад к сценариям</button>
       </main>
     );
   }
 
   return (
     <main className={styles.page}>
-      {/* Тестовая HTML-страница */}
+      <button type="button" className={styles.page__back} onClick={close}>← Назад к сценариям</button>
       <div
         ref={pageRef}
-        className={styles.content}
-        dangerouslySetInnerHTML={
-          pageHtml !== null
-            ? { __html: pageHtml }
-            : undefined
-        }
+        className={styles.page__content}
+        dangerouslySetInnerHTML={ pageHtml !== null ? { __html: pageHtml } : undefined}
       />
 
-      {pageHtml === null && (
-        <p>Загружаем тестовую страницу...</p>
-      )}
+      {pageHtml === null && <p>Загружаем тестовую страницу...</p>}
+      {pageHtml !== null && hints.length === 0 && (<p>В сценарии пока нет шагов.</p>)}
 
-      {pageHtml !== null && hints.length === 0 && (
-        <p>В сценарии пока нет шагов.</p>
-      )}
-
-      {pageHtml !== null && currentHint && (
+      {pageHtml !== null && currentHint && !isFinished && (
         <>
-          {currentIndex > 0 && (
-            <button
-              type="button"
-              className={styles.back}
-              onClick={handleBack}
-            >
-              ← Назад
-            </button>
-          )}
-
-          <Hint
-            key={currentHint.id}
-            hint={currentHint}
-            index={currentIndex}
-            total={hints.length}
-            onNext={handleNext}
-            onClose={close}
-            busy={false}
-            preview
+          {currentIndex > 0 && ( <button type="button" className={styles.page__back} onClick={handleBack}>← Назад</button>)}
+          <Hint key={currentHint.id} hint={currentHint} index={currentIndex} total={hints.length} onNext={handleNext}
+                onClose={handleSkip} busy={false} preview
           />
         </>
       )}

@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import logo from "/logo.svg";
 import styles from "./Styles.module.scss";
 import { useAuth } from "../../Auth/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -11,6 +11,8 @@ function HeaderComponent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const { pathname } = useLocation();
+  const isPreviewPage = /^\/admin\/scenarios\/[^/]+\/preview\/?$/.test(pathname);
 
   const handleLogout = async () => {
     if (busy) return;
@@ -36,10 +38,11 @@ function HeaderComponent() {
           <span className={styles.header__brand__title__span}>Studio</span>
         </h2>
       </div>
-      <div className={styles.header__account}>
-        <button type="button" className={styles.header__profile} aria-label="Меню профиля" aria-haspopup="true">
-          <span className={styles.header__avatar}>{user?.email?.charAt(0).toUpperCase() ?? "A"}</span>
-        </button>
+      {!isPreviewPage && (
+        <div className={styles.header__account}>
+          <button type="button" className={styles.header__profile} aria-label="Меню профиля" aria-haspopup="true">
+            <span className={styles.header__avatar}>{user?.email?.charAt(0).toUpperCase() ?? "A"}</span>
+          </button>
 
         <div className={styles.header__dropdown}>
           <Link to="/admin/profile" className={styles.header__dropdownItem}>Профиль</Link>
@@ -48,6 +51,7 @@ function HeaderComponent() {
           </button>
         </div>
       </div>
+      )}
     </header>
   );
 }
