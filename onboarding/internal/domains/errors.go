@@ -69,6 +69,7 @@ var (
 	ErrSessionNotFound    = errors.New("session not found")
 	ErrUnauthorized       = errors.New("authentication required")
 	ErrAccessDenied       = errors.New("access denied")
+	ErrInvalidProfileName = errors.New("first name and last name are required")
 )
 
 // Helpers

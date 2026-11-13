@@ -31,11 +31,15 @@ func (ar *AuthRepository) CreateUser(
 ) error {
 	err := ar.pool.QueryRow(ctx, `
 		INSERT INTO users (
+		    first_name,
+        	last_name,
 			email,
 			password_hash
 		)
-		VALUES ($1, $2)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at`,
+		user.FirstName,
+		user.LastName,
 		user.Email,
 		user.PasswordHash,
 	).Scan(
@@ -60,6 +64,8 @@ func (ar *AuthRepository) UserByEmail(
 	err := ar.pool.QueryRow(ctx, `
 		SELECT
 			id,
+			first_name,
+			last_name,
 			email,
 			password_hash,
 			created_at
@@ -68,6 +74,8 @@ func (ar *AuthRepository) UserByEmail(
 		email,
 	).Scan(
 		&user.Id,
+		&user.FirstName,
+		&user.LastName,
 		&user.Email,
 		&user.PasswordHash,
 		&user.CreatedAt,
@@ -94,6 +102,8 @@ func (ar *AuthRepository) UserById(
 	err := ar.pool.QueryRow(ctx, `
 		SELECT
 			id,
+			first_name,
+			last_name,
 			email,
 			password_hash,
 			created_at
@@ -102,6 +112,8 @@ func (ar *AuthRepository) UserById(
 		userId,
 	).Scan(
 		&user.Id,
+		&user.FirstName,
+		&user.LastName,
 		&user.Email,
 		&user.PasswordHash,
 		&user.CreatedAt,
@@ -166,6 +178,8 @@ func (ar *AuthRepository) SessionByTokenHash(
 			s.expires_at,
 			s.created_at,
 			u.id,
+			u.first_name,
+			u.last_name,
 			u.email,
 			u.password_hash,
 			u.created_at
@@ -182,6 +196,8 @@ func (ar *AuthRepository) SessionByTokenHash(
 		&session.ExpiresAt,
 		&session.CreatedAt,
 		&user.Id,
+		&user.FirstName,
+		&user.LastName,
 		&user.Email,
 		&user.PasswordHash,
 		&user.CreatedAt,

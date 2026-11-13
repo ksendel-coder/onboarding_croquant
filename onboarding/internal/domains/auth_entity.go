@@ -8,6 +8,8 @@ import (
 
 type User struct {
 	Id           uuid.UUID
+	FirstName    string
+	LastName     string
 	Email        string
 	PasswordHash string
 	CreatedAt    time.Time

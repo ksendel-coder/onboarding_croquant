@@ -28,6 +28,8 @@ type AuthDomain struct {
 type AuthDomainInterface interface {
 	Register(
 		ctx context.Context,
+		firstName string,
+		lastName string,
 		email string,
 		password string,
 	) (*User, string, error)
@@ -115,9 +117,20 @@ func NewAuthDomain(
 
 func (ad *AuthDomain) Register(
 	ctx context.Context,
+	firstName string,
+	lastName string,
 	email string,
 	password string,
 ) (*User, string, error) {
+	firstName = strings.TrimSpace(firstName)
+	lastName = strings.TrimSpace(lastName)
+	if firstName == "" || lastName == "" {
+		return nil, "", logicErr(
+			ErrInvalidProfileName,
+			"registration",
+			http.StatusBadRequest,
+		)
+	}
 	normalizedEmail, err := validateCredentials(
 		email,
 		password,
@@ -139,6 +152,8 @@ func (ad *AuthDomain) Register(
 	}
 
 	user := &User{
+		FirstName:    firstName,
+		LastName:     lastName,
 		Email:        normalizedEmail,
 		PasswordHash: string(passwordHash),
 	}
