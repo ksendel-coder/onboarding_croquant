@@ -127,6 +127,9 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
       }
       if (!target) return;
 
+      const previewContent = document.querySelector('[data-preview-content="true"]');
+      if (!previewContent || !previewContent.contains(clickedElement) || !previewContent.contains(target)) return;
+  
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();

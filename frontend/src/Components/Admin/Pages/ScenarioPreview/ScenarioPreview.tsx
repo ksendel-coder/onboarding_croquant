@@ -115,7 +115,12 @@ export function ScenarioPreview() {
   return (
     <main className={styles.page}>
       <button type="button" className={styles.page__back} onClick={close} data-preview-control="true">← Назад к сценариям</button>
-      <div className={styles.page__content} dangerouslySetInnerHTML={ pageHtml !== null ? { __html: pageHtml } : undefined}/>
+      <div 
+        className={styles.page__content} 
+        data-preview-content="true" 
+        dangerouslySetInnerHTML={ pageHtml !== null ? { __html: pageHtml } : undefined}
+      />
+      
       {pageHtml === null && <p>Загружаем тестовую страницу...</p>}
       {pageHtml !== null && hints.length === 0 && (<p>В сценарии пока нет шагов.</p>)}
 
