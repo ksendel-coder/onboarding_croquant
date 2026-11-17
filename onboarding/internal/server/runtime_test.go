@@ -164,6 +164,8 @@ func TestResolveRouteReturnsScenarioHints(t *testing.T) {
 			"title": "",
 			"description": "",
 			"enabled": true,
+			"has_published": false,
+			"has_unpublished_changes": false,
 			"priority": 0,
 			"created_at": "0001-01-01T00:00:00Z",
 			"updated_at": "0001-01-01T00:00:00Z",
