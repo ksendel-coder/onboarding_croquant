@@ -28,6 +28,9 @@ type Tour struct {
 	AudienceOnlyNew  bool                   `json:"audience_only_new"`
 	Hints            []Hint                 `json:"hints"`
 	StepsCount       int                    `json:"steps_count"`
+
+	HasPublished          bool `json:"has_published"`
+	HasUnpublishedChanges bool `json:"has_unpublished_changes"`
 }
 
 func NewTour(t *domains.Tour) *Tour {
@@ -36,22 +39,24 @@ func NewTour(t *domains.Tour) *Tour {
 	}
 
 	out := &Tour{
-		Id:            t.Id,
-		AppId:         t.AppId,
-		Title:         t.Title,
-		Description:   t.Description,
-		Enabled:       t.Enabled,
-		Priority:      t.Priority,
-		CreatedAt:     t.CreatedAt,
-		UpdatedAt:     t.UpdatedAt,
-		VersionId:     t.VersionId,
-		Version:       t.Version,
-		Status:        string(t.Status),
-		TargetPath:    t.TargetPath,
-		TriggerType:   string(t.TriggerType),
-		TriggerConfig: t.TriggerConfig,
-		Hints:         NewHints(t.Hints),
-		StepsCount:    t.StepsCount,
+		Id:                    t.Id,
+		AppId:                 t.AppId,
+		Title:                 t.Title,
+		Description:           t.Description,
+		Enabled:               t.Enabled,
+		Priority:              t.Priority,
+		CreatedAt:             t.CreatedAt,
+		UpdatedAt:             t.UpdatedAt,
+		VersionId:             t.VersionId,
+		Version:               t.Version,
+		Status:                string(t.Status),
+		TargetPath:            t.TargetPath,
+		TriggerType:           string(t.TriggerType),
+		TriggerConfig:         t.TriggerConfig,
+		Hints:                 NewHints(t.Hints),
+		StepsCount:            t.StepsCount,
+		HasPublished:          t.HasPublished,
+		HasUnpublishedChanges: t.HasUnpublishedChanges,
 	}
 
 	if t.Audience != nil {

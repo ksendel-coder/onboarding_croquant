@@ -69,6 +69,9 @@ type Tour struct {
 	Audience   *Audience
 	Hints      []Hint
 	StepsCount int `json:"steps_count"`
+
+	HasPublished          bool
+	HasUnpublishedChanges bool
 }
 
 type TourVersion struct {

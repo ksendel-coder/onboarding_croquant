@@ -101,22 +101,62 @@ func (tr *TourRepository) GetById(ctx context.Context, id uuid.UUID) (*domains.T
 
 func (tr *TourRepository) List(ctx context.Context, appId uuid.UUID) ([]*domains.Tour, error) {
 	rows, err := tr.pool.Query(ctx, `
-			SELECT t.id, t.app_id, t.title, t.description, t.enabled, t.priority,
-				t.created_at, t.updated_at,
-				v.id, v.version, v.status, v.trigger_type, v.target_path,
-				v.audience_show_once, v.audience_max_shows, v.audience_only_new, 
-				(SELECT COUNT(*)
-   				FROM hints h
-    			WHERE h.tour_version_id = v.id) AS steps_count
-			FROM tours t
-			LEFT JOIN LATERAL (
-				SELECT * FROM tour_versions tv
-				WHERE tv.tour_id = t.id
-				ORDER BY (tv.status = 'published') DESC, tv.version DESC
-				LIMIT 1
-			) v ON true
-			WHERE t.app_id = $1 AND t.archived_at IS NULL
-			ORDER BY t.priority DESC, t.created_at ASC`, appId)
+        SELECT
+            t.id, t.app_id, t.title, t.description, t.enabled, t.priority,
+            t.created_at, t.updated_at,
+            v.id, v.version, v.status, v.trigger_type, v.target_path,
+            v.audience_show_once, v.audience_max_shows, v.audience_only_new,
+            (SELECT COUNT(*) FROM hints h WHERE h.tour_version_id = v.id) AS steps_count,
+            (p.id IS NOT NULL) AS has_published,
+            (
+                d.id IS NOT NULL
+                AND (
+                    p.id IS NULL
+                    OR d.trigger_type IS DISTINCT FROM p.trigger_type
+                    OR d.target_path IS DISTINCT FROM p.target_path
+                    OR d.audience_show_once IS DISTINCT FROM p.audience_show_once
+                    OR d.audience_max_shows IS DISTINCT FROM p.audience_max_shows
+                    OR d.audience_only_new IS DISTINCT FROM p.audience_only_new
+                    OR d.trigger_config IS DISTINCT FROM p.trigger_config
+                    OR d.audience_rules IS DISTINCT FROM p.audience_rules
+                    OR (
+                        SELECT COALESCE(
+                            jsonb_agg(jsonb_build_array(step, title, content, selector, placement) ORDER BY step),
+                            '[]'::jsonb
+                        )
+                        FROM hints WHERE tour_version_id = d.id
+                    ) IS DISTINCT FROM (
+                        SELECT COALESCE(
+                            jsonb_agg(jsonb_build_array(step, title, content, selector, placement) ORDER BY step),
+                            '[]'::jsonb
+                        )
+                        FROM hints WHERE tour_version_id = p.id
+                    )
+                )
+            ) AS has_unpublished_changes
+        FROM tours t
+        LEFT JOIN LATERAL (
+            SELECT * FROM tour_versions tv
+            WHERE tv.tour_id = t.id AND tv.status = 'draft'
+            ORDER BY tv.version DESC
+            LIMIT 1
+        ) d ON true
+        LEFT JOIN LATERAL (
+            SELECT * FROM tour_versions tv
+            WHERE tv.tour_id = t.id AND tv.status = 'published'
+            ORDER BY tv.version DESC
+            LIMIT 1
+        ) p ON true
+        LEFT JOIN LATERAL (
+            SELECT * FROM tour_versions tv
+            WHERE tv.tour_id = t.id
+              AND tv.status IN ('draft', 'published')
+            ORDER BY (tv.status = 'draft') DESC, tv.version DESC
+            LIMIT 1
+        ) v ON true
+        WHERE t.app_id = $1 AND t.archived_at IS NULL
+        ORDER BY t.priority DESC, t.created_at ASC
+    `, appId)
 	if err != nil {
 		return nil, wrap(err, domains.ErrTourNotFound, appId.String(), errs.Retrieve)
 	}
@@ -140,17 +180,21 @@ func (tr *TourRepository) List(ctx context.Context, appId uuid.UUID) ([]*domains
 			&t.CreatedAt, &t.UpdatedAt,
 			&versionId, &version, &status, &triggerType, &targetPath,
 			&showOnce, &maxShows, &onlyNew, &t.StepsCount,
+			&t.HasPublished, &t.HasUnpublishedChanges,
 		); err != nil {
 			return nil, wrap(err, domains.ErrTourNotFound, appId.String(), errs.Retrieve)
 		}
-
 		if versionId != nil {
 			t.VersionId = *versionId
 			t.Version = *version
 			t.Status = domains.TourStatus(*status)
 			t.TriggerType = domains.TriggerType(*triggerType)
 			t.TargetPath = *targetPath
-			t.Audience = &domains.Audience{ShowOnce: *showOnce, MaxShows: *maxShows, OnlyNew: *onlyNew}
+			t.Audience = &domains.Audience{
+				ShowOnce: *showOnce,
+				MaxShows: *maxShows,
+				OnlyNew:  *onlyNew,
+			}
 		}
 		tours = append(tours, t)
 	}
