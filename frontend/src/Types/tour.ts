@@ -9,6 +9,8 @@ export interface TourListItem {
   priority: number;
   updated_at: string;
   status?: "draft" | "published" | "archived";
+  has_published: boolean;
+  has_unpublished_changes: boolean;
   target_path?: string;
   steps_count?: number;
 }
