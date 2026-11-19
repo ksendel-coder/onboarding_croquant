@@ -126,7 +126,7 @@ func TestTourSettingsIntegration(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, draftId, result.PublishedVersionId)
 
-	candidates, err := repo.ResolveCandidates(ctx, appId)
+	candidates, err := repo.ResolveCandidates(ctx, appId, "new-visitor")
 	require.NoError(t, err)
 	var resolved *domains.Tour
 	for _, candidate := range candidates {

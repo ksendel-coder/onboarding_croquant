@@ -72,7 +72,7 @@ func TestTourListDraftStateIntegration(t *testing.T) {
 	}
 	runtime := func(versionID uuid.UUID, path string, count int) {
 		t.Helper()
-		items, err := repo.ResolveCandidates(ctx, appID)
+		items, err := repo.ResolveCandidates(ctx, appID, "new-visitor")
 		require.NoError(t, err)
 		require.Len(t, items, 1)
 		require.Equal(t, tourID, items[0].Id)
@@ -85,7 +85,7 @@ func TestTourListDraftStateIntegration(t *testing.T) {
 	}
 	// 1. Только draft.
 	check(firstDraftID, domains.TourDraft, false, true, 2)
-	candidates, err := repo.ResolveCandidates(ctx, appID)
+	candidates, err := repo.ResolveCandidates(ctx, appID, "new-visitor")
 	require.NoError(t, err)
 	require.Empty(t, candidates)
 
@@ -142,7 +142,7 @@ func TestTourListDraftStateIntegration(t *testing.T) {
 	items, err := repo.List(ctx, appID)
 	require.NoError(t, err)
 	require.Empty(t, items)
-	candidates, err = repo.ResolveCandidates(ctx, appID)
+	candidates, err = repo.ResolveCandidates(ctx, appID, "new-visitor")
 	require.NoError(t, err)
 	require.Empty(t, candidates)
 	// Проверяем, что List/ResolveCandidates сами не создали событий/прогресса.

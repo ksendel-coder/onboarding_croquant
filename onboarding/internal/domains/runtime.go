@@ -187,6 +187,7 @@ func (rd *RuntimeDomain) Resolve(
 	candidates, err := rd.tours.ResolveCandidates(
 		ctx,
 		req.AppId,
+		req.SubjectId,
 	)
 	if err != nil {
 		return nil, err
@@ -209,7 +210,7 @@ func (rd *RuntimeDomain) Resolve(
 	// Resume before starting another tour, including when a step changes pages.
 	for _, tour := range candidates {
 		current := progress[tour.Id]
-		if !tour.Enabled || tour.Status != TourPublished || current == nil ||
+		if !tour.Enabled || (tour.Status != TourPublished && tour.Status != TourArchived) || current == nil ||
 			current.Status != ProgressInProgress || current.TourVersionId != tour.VersionId {
 			continue
 		}

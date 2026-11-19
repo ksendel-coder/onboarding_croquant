@@ -83,6 +83,7 @@ type TourRepositoryInterface interface {
 	ResolveCandidates(
 		ctx context.Context,
 		appId uuid.UUID,
+		subjectId string,
 	) ([]*Tour, error)
 
 	UpdateMeta(

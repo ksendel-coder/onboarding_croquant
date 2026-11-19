@@ -254,17 +254,22 @@ func (tr *TourRepository) Archive(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (tr *TourRepository) ResolveCandidates(ctx context.Context, appId uuid.UUID) ([]*domains.Tour, error) {
+func (tr *TourRepository) ResolveCandidates(ctx context.Context, appId uuid.UUID, subjectId string) ([]*domains.Tour, error) {
 	rows, err := tr.pool.Query(ctx, `
 			SELECT t.id, t.app_id, t.title, t.description, t.enabled, t.priority,
 				t.created_at, t.updated_at,
-				v.id, v.version, v.trigger_type, v.target_path,
+			v.id, v.version, v.status, v.trigger_type, v.target_path,
 				v.audience_show_once, v.audience_max_shows, v.audience_only_new,
 				v.audience_rules, v.trigger_config
 			FROM tours t
-			JOIN tour_versions v ON v.tour_id = t.id AND v.status = 'published'
+			LEFT JOIN tour_progress p
+				ON p.app_id = t.app_id AND p.tour_id = t.id
+				AND p.subject_id = $2 AND p.status = 'in_progress'
+			JOIN tour_versions v ON v.tour_id = t.id
+				AND (v.status = 'published'
+					OR (v.id = p.tour_version_id AND v.status = 'archived' AND v.published_at IS NOT NULL))
 			WHERE t.app_id = $1 AND t.enabled AND t.archived_at IS NULL
-			ORDER BY t.priority DESC, t.created_at ASC`, appId)
+			ORDER BY t.priority DESC, t.created_at ASC`, appId, subjectId)
 	if err != nil {
 		return nil, wrap(err, domains.ErrTourNotFound, appId.String(), errs.Retrieve)
 	}
@@ -281,7 +286,7 @@ func (tr *TourRepository) ResolveCandidates(ctx context.Context, appId uuid.UUID
 		if err := rows.Scan(
 			&t.Id, &t.AppId, &t.Title, &t.Description, &t.Enabled, &t.Priority,
 			&t.CreatedAt, &t.UpdatedAt,
-			&t.VersionId, &t.Version, &t.TriggerType, &t.TargetPath,
+			&t.VersionId, &t.Version, &t.Status, &t.TriggerType, &t.TargetPath,
 			&t.Audience.ShowOnce, &t.Audience.MaxShows, &t.Audience.OnlyNew,
 			&audienceRulesBytes, &triggerConfigBytes,
 		); err != nil {
@@ -308,7 +313,6 @@ func (tr *TourRepository) ResolveCandidates(ctx context.Context, appId uuid.UUID
 			continue
 		}
 
-		t.Status = domains.TourPublished
 		tours = append(tours, t)
 	}
 

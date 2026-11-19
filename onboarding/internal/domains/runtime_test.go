@@ -18,6 +18,7 @@ type runtimeTourRepositoryStub struct {
 func (s *runtimeTourRepositoryStub) ResolveCandidates(
 	context.Context,
 	uuid.UUID,
+	string,
 ) ([]*Tour, error) {
 	return s.candidates, nil
 }

@@ -311,6 +311,15 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	oldActive := request(http.MethodPost, resolvePath, oldBody, "", key, origin)
 	expect(oldActive, http.StatusOK)
 	require.Equal(t, versionID.String(), stringField(decode(oldActive), "tour_version_id"))
+	oldAttempt := stringField(decode(oldActive), "attempt_id")
+	postOldEvent := func(kind string, hint *uuid.UUID) {
+		body := event(kind, hint)
+		body["subject_id"], body["attempt_id"] = oldSubject, oldAttempt
+		expect(request(http.MethodPost, eventsPath, body, "", key, origin), http.StatusAccepted)
+	}
+	postOldEvent("tour_started", nil)
+	postOldEvent("hint_shown", &firstHint)
+	postOldEvent("hint_completed", &firstHint)
 
 	settings := request(http.MethodPatch, "/v1/tours/"+tourID.String()+"/settings", map[string]any{
 		"audience_show_once": true, "audience_max_shows": 1, "audience_only_new": true,
@@ -318,20 +327,22 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	expect(settings, http.StatusNoContent)
 	expect(request(http.MethodPost, "/v1/tours/"+tourID.String()+"/publish", nil, token, "", ""), http.StatusOK)
 
-	// The completed visitor cannot restart and the active old version is not overwritten.
+	// The new version's audience restrictions still apply to finished visitors.
 	expect(request(http.MethodPost, resolvePath, resolveBody, "", key, origin), http.StatusNoContent)
-	expect(request(http.MethodPost, resolvePath, oldBody, "", key, origin), http.StatusNoContent)
+	oldBody["url"] = origin + "/mvp12/profile"
+	oldBody["session_id"] = "reloaded-after-publication"
+	archivedResume := request(http.MethodPost, resolvePath, oldBody, "", key, origin)
+	expect(archivedResume, http.StatusOK)
+	archived := decode(archivedResume)
+	require.Equal(t, versionID.String(), stringField(archived, "tour_version_id"))
+	require.Equal(t, oldAttempt, stringField(archived, "attempt_id"))
+	require.Equal(t, secondHint.String(), stringField(archived, "current_hint_id"))
 	var savedVersion uuid.UUID
 	require.NoError(t, pool.QueryRow(ctx, `SELECT tour_version_id FROM tour_progress
         WHERE app_id=$1 AND subject_id=$2 AND tour_id=$3`, appID, oldSubject, tourID).Scan(&savedVersion))
 	require.Equal(t, versionID, savedVersion)
 
-	// Events for the previous (now archived) version must still be accepted.
-	oldStarted := map[string]any{
-		"event_id": uuid.New(), "attempt_id": stringField(decode(oldActive), "attempt_id"), "subject_id": oldSubject,
-		"tour_id": tourID, "tour_version_id": versionID, "type": "tour_started",
-	}
-	expect(request(http.MethodPost, eventsPath, oldStarted, "", key, origin), http.StatusAccepted)
+	postOldEvent("hint_shown", &secondHint)
 
 	newSubject := "mvp12-new-" + uuid.NewString()
 	newBody := map[string]any{"url": origin + "/mvp12", "subject_id": newSubject,
