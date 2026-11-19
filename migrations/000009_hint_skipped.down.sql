@@ -1,3 +1,13 @@
+CREATE TABLE IF NOT EXISTS tour_hint_skipped_archive (
+    LIKE tour_events INCLUDING INDEXES
+);
+
+WITH skipped AS (
+    DELETE FROM tour_events WHERE event_type = 'hint_skipped' RETURNING *
+)
+INSERT INTO tour_hint_skipped_archive SELECT * FROM skipped
+ON CONFLICT DO NOTHING;
+
 ALTER TABLE tour_events
     DROP CONSTRAINT tour_events_event_type_check,
     DROP CONSTRAINT tour_events_check,

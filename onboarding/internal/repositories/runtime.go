@@ -203,16 +203,7 @@ func (rr *RuntimeRepository) SubjectProgress(
 			started_at,
 			updated_at,
 			finished_at,
-			(
-				SELECT e.attempt_id
-				FROM tour_events e
-				WHERE e.app_id = p.app_id
-				  AND e.subject_id = p.subject_id
-				  AND e.tour_id = p.tour_id
-				  AND e.tour_version_id = p.tour_version_id
-				ORDER BY e.received_at, e.id
-				LIMIT 1
-			)
+			attempt_id
 		FROM tour_progress p
 		WHERE p.app_id = $1
 		  AND p.subject_id = $2`,
@@ -264,8 +255,8 @@ func (rr *RuntimeRepository) SubjectProgress(
 func (rr *RuntimeRepository) UpsertProgress(
 	ctx context.Context,
 	p *domains.Progress,
-) error {
-	_, err := rr.pool.Exec(ctx, `
+) (bool, error) {
+	tag, err := rr.pool.Exec(ctx, `
 		INSERT INTO tour_progress (
 			app_id,
 			subject_id,
@@ -275,9 +266,10 @@ func (rr *RuntimeRepository) UpsertProgress(
 			status,
 			shows_count,
 			started_at,
-			finished_at
+			finished_at,
+			attempt_id
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		ON CONFLICT (app_id, subject_id, tour_id)
 		DO UPDATE SET
 			tour_version_id = EXCLUDED.tour_version_id,
@@ -285,7 +277,10 @@ func (rr *RuntimeRepository) UpsertProgress(
 			status          = EXCLUDED.status,
 			shows_count     = EXCLUDED.shows_count,
 			started_at      = EXCLUDED.started_at,
-			finished_at     = EXCLUDED.finished_at`,
+			finished_at     = EXCLUDED.finished_at,
+			attempt_id      = EXCLUDED.attempt_id
+		WHERE tour_progress.status <> 'in_progress'
+		  AND tour_progress.shows_count = EXCLUDED.shows_count - 1`,
 		p.AppId,
 		p.SubjectId,
 		p.TourId,
@@ -295,9 +290,10 @@ func (rr *RuntimeRepository) UpsertProgress(
 		p.ShowsCount,
 		p.StartedAt,
 		p.FinishedAt,
+		p.AttemptId,
 	)
 
-	return wrap(
+	return tag.RowsAffected() == 1, wrap(
 		err,
 		domains.ErrTourNotFound,
 		p.SubjectId,

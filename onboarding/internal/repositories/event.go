@@ -40,15 +40,16 @@ func (r *EventRepository) Record(
 	var version uuid.UUID
 	var status string
 	var currentHintId *uuid.UUID
+	var attemptId *uuid.UUID
 	err = tx.QueryRow(ctx, `
-		SELECT p.tour_version_id, p.status, p.current_hint_id
+		SELECT p.tour_version_id, p.status, p.current_hint_id, p.attempt_id
 		FROM tour_progress p
 		WHERE p.app_id=$1 AND p.subject_id=$2 AND p.tour_id=$3
 		FOR UPDATE`,
 		event.AppId,
 		event.SubjectId,
 		event.TourId,
-	).Scan(&version, &status, &currentHintId)
+	).Scan(&version, &status, &currentHintId, &attemptId)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, invalidEvent("progress not found; call /resolve first", http.StatusConflict)
 	}
@@ -129,6 +130,9 @@ func (r *EventRepository) Record(
 	if status != string(domains.ProgressInProgress) {
 		return false, invalidEvent("scenario already finished", http.StatusConflict)
 	}
+	if attemptId != nil && *attemptId != event.AttemptId {
+		return false, invalidEvent("attempt_id does not match", http.StatusConflict)
+	}
 
 	var sameTypeExists bool
 	err = tx.QueryRow(ctx, `
@@ -137,42 +141,21 @@ func (r *EventRepository) Record(
 			FROM tour_events
 			WHERE app_id=$1 AND attempt_id=$2 AND tour_id=$3
 				AND event_type=$4 AND hint_id IS NOT DISTINCT FROM $5::uuid
+				AND subject_id=$6 AND tour_version_id=$7
 		)`,
 		event.AppId,
 		event.AttemptId,
 		event.TourId,
 		string(event.Type),
 		event.HintId,
+		event.SubjectId,
+		event.TourVersionId,
 	).Scan(&sameTypeExists)
 	if err != nil {
 		return false, err
 	}
 	if sameTypeExists {
 		return false, tx.Commit(ctx)
-	}
-
-	var anotherAttempt bool
-	err = tx.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1
-			FROM tour_events
-			WHERE app_id=$1
-				AND subject_id=$2
-				AND tour_id=$3
-				AND tour_version_id=$4
-				AND attempt_id<>$5
-		)`,
-		event.AppId,
-		event.SubjectId,
-		event.TourId,
-		event.TourVersionId,
-		event.AttemptId,
-	).Scan(&anotherAttempt)
-	if err != nil {
-		return false, err
-	}
-	if anotherAttempt {
-		return false, invalidEvent("attempt_id does not match", http.StatusConflict)
 	}
 
 	if event.Type == domains.EventHintCompleted || event.Type == domains.EventHintSkipped {
@@ -194,6 +177,18 @@ func (r *EventRepository) Record(
 		}
 		if totalHints == 0 || currentHintId != nil {
 			return false, invalidEvent("scenario steps are not completed", http.StatusConflict)
+		}
+	}
+
+	if attemptId == nil {
+		// Progress created before attempts were stored can bind its first event.
+		_, err = tx.Exec(ctx, `
+			UPDATE tour_progress SET attempt_id=$4
+			WHERE app_id=$1 AND subject_id=$2 AND tour_id=$3`,
+			event.AppId, event.SubjectId, event.TourId, event.AttemptId,
+		)
+		if err != nil {
+			return false, err
 		}
 	}
 

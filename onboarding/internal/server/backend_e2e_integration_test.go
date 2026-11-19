@@ -203,7 +203,7 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	expect(request(http.MethodPost, resolvePath, noMatch, "", key, origin), http.StatusNoContent)
 
 	// 3. Real event ingestion, deduplication, progress updates and analytics.
-	attemptID := uuid.New()
+	attemptID := uuid.MustParse(initialAttempt)
 	event := func(typ string, hintID *uuid.UUID) map[string]any {
 		body := map[string]any{
 			"event_id": uuid.New(), "attempt_id": attemptID,
@@ -256,11 +256,12 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	require.EqualValues(t, 1, metrics["started"])
 	require.EqualValues(t, 1, metrics["completed"])
 
-	skipSubject, skipAttempt := uuid.NewString(), uuid.New()
+	skipSubject := uuid.NewString()
 	skipResolve := request(http.MethodPost, resolvePath, map[string]any{
 		"url": origin + "/mvp12", "subject_id": skipSubject, "session_id": "skip-test",
 	}, "", key, origin)
 	expect(skipResolve, http.StatusOK)
+	skipAttempt := stringField(decode(skipResolve), "attempt_id")
 	recordSkipAttempt := func(body map[string]any, status int) {
 		body["subject_id"], body["attempt_id"] = skipSubject, skipAttempt
 		expect(request(http.MethodPost, eventsPath, body, "", key, origin), status)
@@ -288,6 +289,21 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	require.EqualValues(t, 1, firstStep["completed"])
 	require.EqualValues(t, 1, firstStep["skipped"])
 
+	repeat := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
+	expect(repeat, http.StatusOK)
+	repeatBody := decode(repeat)
+	repeatAttempt := stringField(repeatBody, "attempt_id")
+	require.NotEqual(t, initialAttempt, repeatAttempt)
+	require.Equal(t, versionID.String(), stringField(repeatBody, "tour_version_id"))
+	require.Equal(t, firstHint.String(), stringField(repeatBody, "current_hint_id"))
+	expect(request(http.MethodPost, eventsPath, event("tour_dismissed", nil), "", key, origin), http.StatusConflict)
+	repeatStart := event("tour_started", nil)
+	repeatStart["attempt_id"] = repeatAttempt
+	expect(request(http.MethodPost, eventsPath, repeatStart, "", key, origin), http.StatusAccepted)
+	repeatDismiss := event("tour_dismissed", nil)
+	repeatDismiss["attempt_id"] = repeatAttempt
+	expect(request(http.MethodPost, eventsPath, repeatDismiss, "", key, origin), http.StatusAccepted)
+
 	// 4. Republish different audience settings; old active progress is not reassigned.
 	oldSubject := "mvp12-active-" + uuid.NewString()
 	oldBody := map[string]any{"url": origin + "/mvp12", "subject_id": oldSubject,
@@ -312,7 +328,7 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 
 	// Events for the previous (now archived) version must still be accepted.
 	oldStarted := map[string]any{
-		"event_id": uuid.New(), "attempt_id": uuid.New(), "subject_id": oldSubject,
+		"event_id": uuid.New(), "attempt_id": stringField(decode(oldActive), "attempt_id"), "subject_id": oldSubject,
 		"tour_id": tourID, "tour_version_id": versionID, "type": "tour_started",
 	}
 	expect(request(http.MethodPost, eventsPath, oldStarted, "", key, origin), http.StatusAccepted)
