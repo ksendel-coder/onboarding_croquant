@@ -18,8 +18,8 @@
 
   &__metrics {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 51px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 100px;
     margin-bottom: 29px;
 
     &__metricCard {

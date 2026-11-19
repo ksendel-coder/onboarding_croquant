@@ -1,10 +1,11 @@
 .page {
   padding: 18px 30px 34px;
-  color: #161d34;
+  color: #0F172A;
   background: transparent;
 
   &__dot {
     margin: 0 12px;
+    font-size: 25px;
   }
 
   &__versionBox {
@@ -27,7 +28,7 @@
 
     span {
       font-size: 13px;
-      color: #7182a3;
+      color: #94A3B8;
     }
 
     strong {
@@ -80,14 +81,15 @@
 
     h1 {
       margin: 0 0 7px;
-      font-size: 29px;
-      line-height: 1.15;
+      font-size: 30px;
+      line-height: 100%;
+      font-weight: 700;
     }
 
     p {
       margin: 0;
-      font-size: 16px;
-      color: #7887a4;
+      font-size: 20px;
+      color: #94A3B8;
     }
   }
 
@@ -100,14 +102,14 @@
 
   h2 {
     margin: 0 0 8px;
-    font-size: 24px;
+    font-size: 25px;
   }
 
   &__description {
     margin: 0 0 24px;
-    color: #7887a4;
-    font-size: 14px;
-    line-height: 1.5;
+    color: #697382;
+    font-size: 17px;
+    line-height: 100%;
   }
 
   &__steps {
@@ -136,14 +138,15 @@
 
       h3 {
         margin: 0 0 5px;
-        font-size: 17px;
+        font-size: 18px;
+        font-weight: 700;
       }
 
       p {
         margin: 0;
-        font-size: 13px;
-        color: #7486a3;
-        line-height: 1.4;
+        font-size: 15px;
+        color: #94A3B8;
+        line-height: 100%;
       }
     }
 
@@ -166,8 +169,8 @@
       > span {
         display: block;
         margin-bottom: 9px;
-        color: #7182a2;
-        font-size: 12px;
+        color: #94A3B8;
+        font-size: 15px;
       }
 
       strong {
@@ -179,22 +182,22 @@
         display: inline-block;
         padding: 4px 9px;
         margin-left: 6px;
-        font-size: 12px;
-        font-weight: 500;
-        border-radius: 9px;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 10px;
       }
 
       &__good {
-        color: #07974c;
-        background: #e5f8ed;
+        color: #10B981;
+        background: #D1FAE5;
       }
       &__bad {
         color: #de2546;
         background: #ffe7ec;
       }
       &__neutral {
-        color: #7082a1;
-        background: #eff1f6;
+        color: #94A3B8;
+        background: #94A3B833;
       }
     }
   }
@@ -256,11 +259,16 @@
     padding-left: 22px;
     border-left: 1px solid #e2e6ee;
 
+    &__bad {
+        color: #de2546;
+        background: #ffe7ec;
+    }
+
     > span {
       display: block;
       margin-bottom: 9px;
-      color: #7182a2;
-      font-size: 12px;
+      color: #94A3B8;
+      font-size: 15px;
     }
 
     small {
@@ -268,13 +276,13 @@
       padding: 4px 9px;
       margin-left: 6px;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 700;
       border-radius: 9px;
     }
 
     strong {
       font-size: 17px;
-      font-weight: 500;
+      font-weight: 700;
       white-space: nowrap;
     }
   }

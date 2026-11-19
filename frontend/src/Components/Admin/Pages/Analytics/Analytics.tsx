@@ -8,8 +8,7 @@ const demoRows = [
     version: "v7",
     started: 24150,
     completed: 20527,
-    completionRate: 85.0,
-    goalRate: 70.0,
+    completionRate: 85.0
   },
 ];
 
@@ -17,7 +16,6 @@ const demoMetrics: { label: string; value: string; note: string; kind?: "success
   { label: "ВСЕГО ЗАПУСКОВ", value: "42,800", note: "↑ +14.2%" },
   { label: "ЗАВЕРШИЛИ ТУР", value: "36,380", note: "↑ +18.0%" },
   { label: "COMPLETION RATE", value: "85.0%", note: "Выше среднего", kind: "success" },
-  { label: "GOAL RATE (ЦЕЛЬ)", value: "68.4%", note: "↑ +4.1%", kind: "brand" },
 ];
 
 export function Analytics() {
@@ -51,7 +49,6 @@ export function Analytics() {
               <th>ЗАПУСКИ</th>
               <th>ЗАВЕРШИЛИ</th>
               <th>COMPLETION RATE</th>
-              <th>GOAL RATE</th>
             </tr>
           </thead>
           <tbody>
@@ -66,7 +63,6 @@ export function Analytics() {
                 <td>{row.started.toLocaleString("en-US")}</td>
                 <td>{row.completed.toLocaleString("en-US")}</td>
                 <td className={styles.page__metrics__success}>{row.completionRate.toFixed(1)}%</td>
-                <td>{row.goalRate.toFixed(1)}%</td>
               </tr>
             ))}
           </tbody>

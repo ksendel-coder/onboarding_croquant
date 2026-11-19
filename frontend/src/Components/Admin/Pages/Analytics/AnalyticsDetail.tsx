@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Copy, FileText, ImageOff } from "lucide-react";
+import { FileText, CircleAlert } from "lucide-react";
 import styles from "./AnalyticsDetail.module.scss";
 
 const demoTour = {
@@ -60,7 +59,6 @@ function percent(value: number, total: number) {
 
 export function AnalyticsDetail() {
   const { tourId } = useParams<{ tourId: string }>();
-  const [copied, setCopied] = useState(false);
 
   if (tourId !== demoTour.id) {
     return (
@@ -69,15 +67,6 @@ export function AnalyticsDetail() {
         <Link to="/admin/analytics">Вернуться к аналитике</Link>
       </main>
     );
-  }
-
-  async function copyVersionId() {
-    try {
-      await navigator.clipboard.writeText(demoTour.versionId);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
   }
 
   return (
@@ -90,17 +79,6 @@ export function AnalyticsDetail() {
               <h1>{demoTour.name}</h1>
               <p>Версия {demoTour.version} <span className={styles.page__dot}>·</span> {demoTour.period}</p>
             </div>
-          </div>
-          <div className={styles.page__versionBox}>
-            <div>
-              <span>Version ID</span>
-              <strong>{demoTour.versionId}</strong>
-            </div>
-            <button type="button" className={styles.page__copyButton} onClick={() => void copyVersionId()}
-              title="Скопировать Version ID" aria-label="Скопировать Version ID">
-              <Copy size={20} />
-            </button>
-            {copied && <span className={styles.panel__copied}>Скопировано</span>}
           </div>
         </header>
 
@@ -120,7 +98,6 @@ export function AnalyticsDetail() {
                   <span className={styles.panel__steps__stepNumber}>{step.number}</span>
                   <div>
                     <h3>{step.title}</h3>
-                    <p>{step.description}</p>
                   </div>
                 </div>
                 <div className={styles.panel__steps__stat}><span>Показано</span><strong>{step.shown}</strong></div>
@@ -154,7 +131,7 @@ export function AnalyticsDetail() {
         <div className={styles.panel__issues}>
           {demoTour.issues.map((issue) => (
             <article className={styles.panel__issues__issueRow} key={issue.id}>
-              <span className={styles.panel__issues__issueIcon}><ImageOff size={27} /></span>
+              <span className={styles.panel__issues__issueIcon}><CircleAlert size={27} /></span>
               <div className={styles.panel__issues__issueInfo}>
                 <h3>Шаг {issue.step} — {issue.name}</h3>
                 <p>{issue.description}</p>
