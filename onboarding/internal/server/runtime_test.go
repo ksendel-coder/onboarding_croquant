@@ -115,6 +115,7 @@ func TestResolveRouteReturnsScenarioHints(t *testing.T) {
 	domain := &runtimeDomainStub{
 		app: &domains.App{
 			Id:             appId,
+			Theme:          domains.Theme{PrimaryColor: "#123456", BackgroundColor: "#FFFFFF", TextColor: "#181818"},
 			PublicKey:      "pk_test",
 			AllowedOrigins: []string{"http://localhost:5173"},
 		},
@@ -158,6 +159,7 @@ func TestResolveRouteReturnsScenarioHints(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.Code)
 	assert.Equal(t, appId, domain.lastReq.AppId)
 	assert.JSONEq(t, `{
+		"theme": {"primary_color":"#123456", "background_color":"#FFFFFF", "text_color":"#181818"},
 		"tour": {
 			"id": "`+domain.result.Tour.Id.String()+`",
 			"app_id": "`+appId.String()+`",

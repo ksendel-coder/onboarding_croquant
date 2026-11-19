@@ -138,6 +138,15 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	app := decode(appRes)
 	appID = uuid.MustParse(stringField(app, "id"))
 	key := stringField(app, "public_key")
+	require.Equal(t, map[string]any{"primary_color": "#696CF1", "background_color": "#FFFFFF", "text_color": "#181818"}, app["theme"])
+	theme := map[string]any{"primary_color": "#123ABC", "background_color": "#F0F0F0", "text_color": "#202020"}
+	appPath := "/v1/apps/" + appID.String()
+	themeBody := map[string]any{"theme": theme}
+	expect(request(http.MethodPatch, appPath, themeBody, "", key, origin), http.StatusUnauthorized)
+	expect(request(http.MethodPatch, appPath, map[string]any{"theme": map[string]any{"primary_color": "red"}}, token, "", ""), http.StatusBadRequest)
+	patched := request(http.MethodPatch, appPath, themeBody, token, "", "")
+	expect(patched, http.StatusOK)
+	require.Equal(t, theme, decode(patched)["theme"])
 
 	tourRes := request(http.MethodPost, "/v1/tours?appId="+appID.String(), map[string]any{
 		"title": "MVP12 E2E", "description": "end to end", "enabled": true,
@@ -178,6 +187,7 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	first := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
 	expect(first, http.StatusOK)
 	resolved := decode(first)
+	require.Equal(t, theme, resolved["theme"])
 	versionID := uuid.MustParse(stringField(resolved, "tour_version_id"))
 	initialAttempt := stringField(resolved, "attempt_id")
 	tourJSON, ok := resolved["tour"].(map[string]any)
