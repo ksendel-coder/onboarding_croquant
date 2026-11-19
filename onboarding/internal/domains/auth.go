@@ -61,6 +61,13 @@ type AuthDomainInterface interface {
 		userId uuid.UUID,
 		tourId uuid.UUID,
 	) (bool, error)
+
+	UpdateNames(
+		ctx context.Context,
+		userId uuid.UUID,
+		firstName,
+		lastName string,
+	) (*User, error)
 }
 
 type AuthRepositoryInterface interface {
@@ -105,6 +112,13 @@ type AuthRepositoryInterface interface {
 		userId uuid.UUID,
 		tourId uuid.UUID,
 	) (bool, error)
+
+	UpdateNames(
+		ctx context.Context,
+		userId uuid.UUID,
+		firstName,
+		lastName string,
+	) (*User, error)
 }
 
 func NewAuthDomain(
@@ -396,4 +410,18 @@ func hashToken(token string) string {
 	return hex.EncodeToString(
 		sum[:],
 	)
+}
+
+func (ad *AuthDomain) UpdateNames(
+	ctx context.Context,
+	userId uuid.UUID,
+	firstName string,
+	lastName string,
+) (*User, error) {
+	firstName = strings.TrimSpace(firstName)
+	lastName = strings.TrimSpace(lastName)
+	if firstName == "" || lastName == "" {
+		return nil, logicErr(ErrInvalidProfileName, "profile update", http.StatusBadRequest)
+	}
+	return ad.auth.UpdateNames(ctx, userId, firstName, lastName)
 }
