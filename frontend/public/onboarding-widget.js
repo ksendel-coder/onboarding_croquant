@@ -10,12 +10,25 @@ function getSubjectId() {
   return id;
 }
 
-function getAttemptId(tourId, versionId) {
-  const key = `${ATTEMPT_PREFIX}${tourId}_${versionId}`;
+function getSessionId() {
+  const key = `${ATTEMPT_PREFIX}runtime_session`;
   let id = sessionStorage.getItem(key);
   if (!id) {
     id = crypto.randomUUID();
     sessionStorage.setItem(key, id);
+  }
+  return id;
+}
+
+function getAttemptId({ attempt_id, tour, tour_version_id }) {
+  if (attempt_id) return attempt_id;
+  const tourId = tour.id;
+  const versionId = tour_version_id;
+  const key = `${ATTEMPT_PREFIX}${tourId}_${versionId}`;
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = sessionStorage.getItem(key) ?? crypto.randomUUID();
+    localStorage.setItem(key, id);
   }
   return id;
 }
@@ -32,7 +45,7 @@ async function resolveTour(apiUrl, appKey, signal) {
     body: JSON.stringify({
       url: window.location.href,
       subject_id: getSubjectId(),
-      session_id: getAttemptId("runtime", "session"),
+      session_id: getSessionId(),
       props: {},
     }),
   });
@@ -68,7 +81,7 @@ async function sendEvent(apiUrl, appKey, event, signal) {
 }
 
 function makeEvent(result, type, hintId) {
-  const attempt = getAttemptId(result.tour.id, result.tour_version_id);
+  const attempt = getAttemptId(result);
   const identity = `croquant_event_${attempt}_${type}_${hintId ?? "tour"}`;
 
   let eventId = sessionStorage.getItem(identity);
@@ -107,6 +120,13 @@ const styles = `
     background: #fff;
     box-sizing: border-box;
     box-shadow: 0 4px 20px #17233b24;
+  }
+
+  .spotlight {
+    position: fixed;
+    outline: 2px solid #fff;
+    box-shadow: 0 0 0 200vmax #0009;
+    pointer-events: none;
   }
 
   header {
@@ -164,12 +184,22 @@ function findTarget(selector) {
   }
 }
 
-function positionHint(panel, hint) {
+function positionHint(panel, spotlight, hint) {
   const target = findTarget(hint.selector);
-  panel.hidden = !target;
-  if (!target) return;
+  const rect = target?.getBoundingClientRect();
+  const visible = Boolean(rect && rect.width > 0 && rect.height > 0 &&
+    rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight &&
+    target.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) !== false);
+  panel.hidden = spotlight.hidden = !visible;
+  if (!visible) return false;
 
-  const rect = target.getBoundingClientRect();
+  Object.assign(spotlight.style, {
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+  });
+
   const { width, height } = panel.getBoundingClientRect();
   const centerX = rect.left + (rect.width - width) / 2;
   const centerY = rect.top + (rect.height - height) / 2;
@@ -188,6 +218,7 @@ function positionHint(panel, hint) {
 
   panel.style.left = `${Math.max(16, Math.min(left, window.innerWidth - width - 16))}px`;
   panel.style.top = `${Math.max(16, Math.min(top, window.innerHeight - height - 16))}px`;
+  return true;
 }
 
 export function mountOnboardingWidget({ appKey, apiUrl }) {
@@ -203,9 +234,10 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
   let hints = [];
   let index = 0;
   let busy = false;
+  let paintFrame = null;
   let updatePosition = () => {};
   const observer = new MutationObserver(() => updatePosition());
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, { attributes: true, childList: true, subtree: true });
   window.addEventListener("scroll", reposition, { capture: true, signal });
   window.addEventListener("resize", reposition, { signal });
 
@@ -216,32 +248,45 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
   function destroy() {
     controller.abort();
     observer.disconnect();
+    cancelPaint();
     host.remove();
+  }
+
+  function cancelPaint() {
+    if (paintFrame !== null) window.cancelAnimationFrame(paintFrame);
+    paintFrame = null;
   }
 
   function post(type, hintId) {
     return sendEvent(apiUrl, appKey, makeEvent(result, type, hintId), signal);
   }
 
-  async function run(action, failureMessage) {
+  async function run(
+    action,
+    failureMessage,
+    onSuccess = renderHint,
+    retryAction = () => void run(action, failureMessage, onSuccess),
+  ) {
     if (busy || signal.aborted) return;
     busy = true;
     content.querySelectorAll("button").forEach((button) => { button.disabled = true; });
     try {
       await action();
-      if (!signal.aborted) renderHint();
     } catch {
       if (signal.aborted) return;
+      cancelPaint();
       updatePosition = () => {};
       const panel = createElement("aside", "", "error");
       panel.setAttribute("role", "alert");
       const retry = createElement("button", "Повторить");
-      retry.addEventListener("click", () => void run(action, failureMessage));
+      retry.addEventListener("click", retryAction);
       panel.append(createElement("p", failureMessage), retry);
       content.replaceChildren(panel);
+      return;
     } finally {
       busy = false;
     }
+    if (!signal.aborted) onSuccess();
   }
 
   async function advance() {
@@ -252,7 +297,6 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
       return;
     }
 
-    await post("hint_shown", hints[index + 1].id);
     index++;
   }
 
@@ -263,6 +307,8 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
 
   function renderHint() {
     const hint = hints[index];
+    const spotlight = createElement("div", "", "spotlight");
+    spotlight.setAttribute("aria-hidden", "true");
     const panel = createElement("aside");
     panel.setAttribute("aria-label", "Подсказка онбординга");
 
@@ -275,16 +321,36 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
 
     const header = createElement("header");
     header.append(createElement("h3", hint.title), createElement("span", `${index + 1}/${hints.length}`));
+    close.disabled = next.disabled = true;
     panel.append(close, header, createElement("p", hint.content), next);
-    content.replaceChildren(panel);
+    content.replaceChildren(spotlight, panel);
 
-    updatePosition = () => positionHint(panel, hint);
+    let shown = false;
+    updatePosition = () => {
+      if (!positionHint(panel, spotlight, hint)) {
+        cancelPaint();
+        return;
+      }
+      if (shown || busy || paintFrame !== null) return;
+
+      // Leave a paint between revealing the panel and recording its impression.
+      paintFrame = window.requestAnimationFrame(() => {
+        paintFrame = window.requestAnimationFrame(() => {
+          paintFrame = null;
+          if (signal.aborted || !positionHint(panel, spotlight, hint)) return;
+          void run(
+            () => post("hint_shown", hint.id),
+            "Не удалось записать показ подсказки.",
+            () => {
+              shown = true;
+              close.disabled = next.disabled = false;
+            },
+            renderHint,
+          );
+        });
+      });
+    };
     reposition();
-  }
-
-  async function start() {
-    await post("tour_started");
-    await post("hint_shown", hints[index].id);
   }
 
   async function load() {
@@ -299,7 +365,13 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
       index = Math.max(0, hints.findIndex((hint) => hint.id === result.current_hint_id));
     }
 
-    await start();
+    if (!result.current_hint_id) {
+      await post("tour_completed");
+      destroy();
+      return;
+    }
+
+    await post("tour_started");
   }
 
   void run(load, "Не удалось загрузить сценарий.");

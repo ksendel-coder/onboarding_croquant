@@ -169,6 +169,7 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	expect(first, http.StatusOK)
 	resolved := decode(first)
 	versionID := uuid.MustParse(stringField(resolved, "tour_version_id"))
+	initialAttempt := stringField(resolved, "attempt_id")
 	tourJSON, ok := resolved["tour"].(map[string]any)
 	require.True(t, ok)
 	hints, ok := tourJSON["hints"].([]any)
@@ -180,6 +181,7 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	again := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
 	expect(again, http.StatusOK)
 	require.Equal(t, versionID.String(), stringField(decode(again), "tour_version_id"))
+	require.Equal(t, initialAttempt, stringField(decode(again), "attempt_id"))
 
 	var shows int
 	require.NoError(t, pool.QueryRow(ctx, `SELECT shows_count FROM tour_progress
@@ -206,6 +208,10 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	started := event("tour_started", nil)
 	expect(request(http.MethodPost, eventsPath, started, "", key, origin), http.StatusAccepted)
 	expect(request(http.MethodPost, eventsPath, started, "", key, origin), http.StatusOK)
+	resolveBody["session_id"] = "reopened-tab"
+	resumed := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
+	expect(resumed, http.StatusOK)
+	require.Equal(t, attemptID.String(), stringField(decode(resumed), "attempt_id"))
 	for _, body := range []map[string]any{
 		event("hint_shown", &firstHint),
 		event("hint_completed", &firstHint),

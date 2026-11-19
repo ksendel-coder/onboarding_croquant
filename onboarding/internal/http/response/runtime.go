@@ -26,6 +26,7 @@ type ResolveResult struct {
 	TourVersionId uuid.UUID  `json:"tour_version_id" format:"uuid"`
 	Version       int        `json:"version" example:"1"`
 	CurrentHintId *uuid.UUID `json:"current_hint_id,omitempty" format:"uuid"`
+	AttemptId     *uuid.UUID `json:"attempt_id,omitempty" format:"uuid"`
 }
 
 func NewApp(a *domains.App) *App {
@@ -68,5 +69,6 @@ func NewResolveResult(
 		TourVersionId: r.TourVersionId,
 		Version:       r.Version,
 		CurrentHintId: r.CurrentHintId,
+		AttemptId:     r.AttemptId,
 	}
 }

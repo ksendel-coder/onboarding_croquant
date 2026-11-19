@@ -202,10 +202,20 @@ func (rr *RuntimeRepository) SubjectProgress(
 			shows_count,
 			started_at,
 			updated_at,
-			finished_at
-		FROM tour_progress
-		WHERE app_id = $1
-		  AND subject_id = $2`,
+			finished_at,
+			(
+				SELECT e.attempt_id
+				FROM tour_events e
+				WHERE e.app_id = p.app_id
+				  AND e.subject_id = p.subject_id
+				  AND e.tour_id = p.tour_id
+				  AND e.tour_version_id = p.tour_version_id
+				ORDER BY e.received_at, e.id
+				LIMIT 1
+			)
+		FROM tour_progress p
+		WHERE p.app_id = $1
+		  AND p.subject_id = $2`,
 		appId,
 		subjectId,
 	)
@@ -235,6 +245,7 @@ func (rr *RuntimeRepository) SubjectProgress(
 			&p.StartedAt,
 			&p.UpdatedAt,
 			&p.FinishedAt,
+			&p.AttemptId,
 		); err != nil {
 			return nil, wrap(
 				err,

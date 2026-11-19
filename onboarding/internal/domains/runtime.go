@@ -323,11 +323,17 @@ func (rd *RuntimeDomain) startScenario(
 		}
 	}
 
+	attemptId := current.AttemptId
+	if attemptId == nil {
+		id := uuid.NewSHA1(tour.VersionId, []byte(req.SubjectId))
+		attemptId = &id
+	}
 	return &ResolveResult{
 		Tour:          tour,
 		TourVersionId: tour.VersionId,
 		Version:       tour.Version,
 		CurrentHintId: current.CurrentHintId,
+		AttemptId:     attemptId,
 	}, nil
 }
 
