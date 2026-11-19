@@ -18,6 +18,12 @@ type authNamesRepositoryStub struct {
 	userByEmail *User
 }
 
+type profileNamesRepoStub struct {
+	AuthRepositoryInterface
+	calls int
+	id    uuid.UUID
+}
+
 func (s *authNamesRepositoryStub) CreateUser(_ context.Context, user *User) error {
 	user.Id = uuid.New()
 	user.CreatedAt = time.Now().UTC()
@@ -35,6 +41,12 @@ func (s *authNamesRepositoryStub) CreateSession(_ context.Context, session *Admi
 
 func (s *authNamesRepositoryStub) UserByEmail(_ context.Context, _ string) (*User, error) {
 	return s.userByEmail, nil
+}
+
+func (s *profileNamesRepoStub) UpdateNames(_ context.Context, id uuid.UUID, first, last string) (*User, error) {
+	s.calls++
+	s.id = id
+	return &User{Id: id, FirstName: first, LastName: last}, nil
 }
 
 func TestAuthRegisterSavesNamesAndCreatesSession(t *testing.T) {
@@ -90,4 +102,21 @@ func TestAuthLoginPreservesProfileNames(t *testing.T) {
 	require.Equal(t, "Анна", user.FirstName)
 	require.Equal(t, "Иванова", user.LastName)
 	require.Equal(t, stored.Id, repo.session.UserId)
+}
+
+func TestUpdateProfileNames(t *testing.T) {
+	repo := &profileNamesRepoStub{}
+	domain := NewAuthDomain(repo)
+	id := uuid.New()
+	for _, names := range [][2]string{{" ", "Иванова"}, {"Анна", " "}} {
+		_, err := domain.UpdateNames(context.Background(), id, names[0], names[1])
+		require.Error(t, err)
+	}
+	require.Zero(t, repo.calls)
+	user, err := domain.UpdateNames(context.Background(), id, " Анна ", " Иванова ")
+	require.NoError(t, err)
+	require.Equal(t, id, repo.id)
+	require.Equal(t, 1, repo.calls)
+	require.Equal(t, "Анна", user.FirstName)
+	require.Equal(t, "Иванова", user.LastName)
 }
