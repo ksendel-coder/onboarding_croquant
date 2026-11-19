@@ -1,5 +1,6 @@
 const SUBJECT_KEY = "croquant_subject_id";
 const ATTEMPT_PREFIX = "croquant_attempt_";
+const TARGET_TIMEOUT_MS = 4_000;
 
 function getSubjectId() {
   let id = localStorage.getItem(SUBJECT_KEY);
@@ -243,6 +244,7 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
   let index = 0;
   let busy = false;
   let paintFrame = null;
+  let targetTimeout = null;
   let updatePosition = () => {};
   const observer = new MutationObserver(() => updatePosition());
   observer.observe(document.body, { attributes: true, childList: true, subtree: true });
@@ -257,12 +259,18 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
     controller.abort();
     observer.disconnect();
     cancelPaint();
+    cancelTargetTimeout();
     host.remove();
   }
 
   function cancelPaint() {
     if (paintFrame !== null) window.cancelAnimationFrame(paintFrame);
     paintFrame = null;
+  }
+
+  function cancelTargetTimeout() {
+    clearTimeout(targetTimeout);
+    targetTimeout = null;
   }
 
   function post(type, hintId) {
@@ -283,6 +291,7 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
     } catch {
       if (signal.aborted) return;
       cancelPaint();
+      cancelTargetTimeout();
       updatePosition = () => {};
       const panel = createElement("aside", "", "error");
       panel.setAttribute("role", "alert");
@@ -297,8 +306,8 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
     if (!signal.aborted) onSuccess();
   }
 
-  async function advance() {
-    await post("hint_completed", hints[index].id);
+  async function advance(type = "hint_completed") {
+    await post(type, hints[index].id);
     if (index === hints.length - 1) {
       await post("tour_completed");
       destroy();
@@ -314,6 +323,7 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
   }
 
   function renderHint() {
+    cancelTargetTimeout();
     const hint = hints[index];
     const spotlight = createElement("div", "", "spotlight");
     spotlight.setAttribute("aria-hidden", "true");
@@ -349,15 +359,30 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
       }
       if (!positionHint(panel, spotlight, hint, rect)) {
         cancelPaint();
+        if (targetTimeout === null && !busy) {
+          targetTimeout = setTimeout(() => {
+            targetTimeout = null;
+            if (isInViewport(getTargetRect(findTarget(hint.selector)))) {
+              reposition();
+              return;
+            }
+            void run(() => advance("hint_skipped"), "Не удалось пропустить шаг.");
+          }, TARGET_TIMEOUT_MS);
+        }
         return;
       }
+      cancelTargetTimeout();
       if (shown || busy || paintFrame !== null) return;
 
       // Leave a paint between revealing the panel and recording its impression.
       paintFrame = window.requestAnimationFrame(() => {
         paintFrame = window.requestAnimationFrame(() => {
           paintFrame = null;
-          if (signal.aborted || !positionHint(panel, spotlight, hint, getTargetRect(findTarget(hint.selector)))) return;
+          if (signal.aborted) return;
+          if (!positionHint(panel, spotlight, hint, getTargetRect(findTarget(hint.selector)))) {
+            reposition();
+            return;
+          }
           void run(
             () => post("hint_shown", hint.id),
             "Не удалось записать показ подсказки.",

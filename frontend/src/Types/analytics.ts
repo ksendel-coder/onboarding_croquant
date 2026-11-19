@@ -9,6 +9,7 @@ export interface StepAnalytics {
   step: number;
   shown: number;
   completed: number;
+  skipped: number;
   drop_off: number;
 }
 export interface TourAnalytics {

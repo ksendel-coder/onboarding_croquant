@@ -175,7 +175,7 @@ func (r *EventRepository) Record(
 		return false, invalidEvent("attempt_id does not match", http.StatusConflict)
 	}
 
-	if event.Type == domains.EventHintCompleted {
+	if event.Type == domains.EventHintCompleted || event.Type == domains.EventHintSkipped {
 		if currentHintId == nil || event.HintId == nil || *currentHintId != *event.HintId {
 			return false, invalidEvent("hint is not current", http.StatusConflict)
 		}
@@ -217,7 +217,7 @@ func (r *EventRepository) Record(
 	}
 
 	switch event.Type {
-	case domains.EventHintCompleted:
+	case domains.EventHintCompleted, domains.EventHintSkipped:
 		_, err = tx.Exec(ctx, `
 			UPDATE tour_progress p
 			SET current_hint_id=(
@@ -309,7 +309,8 @@ func (r *EventRepository) Analytics(
 			h.id,
 			h.step,
 			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_shown') AS shown,
-			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_completed') AS completed
+			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_completed') AS completed,
+			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_skipped') AS skipped
 		FROM hints h
 		LEFT JOIN tour_events e
 			ON e.hint_id=h.id AND e.tour_version_id=h.tour_version_id
@@ -325,7 +326,7 @@ func (r *EventRepository) Analytics(
 
 	for rows.Next() {
 		var step domains.StepAnalytics
-		if err := rows.Scan(&step.HintId, &step.Step, &step.Shown, &step.Completed); err != nil {
+		if err := rows.Scan(&step.HintId, &step.Step, &step.Shown, &step.Completed, &step.Skipped); err != nil {
 			return nil, err
 		}
 		step.DropOff = step.Shown - step.Completed

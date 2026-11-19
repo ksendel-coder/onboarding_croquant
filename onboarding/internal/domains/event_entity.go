@@ -12,6 +12,7 @@ const (
 	EventTourStarted   EventType = "tour_started"
 	EventHintShown     EventType = "hint_shown"
 	EventHintCompleted EventType = "hint_completed"
+	EventHintSkipped   EventType = "hint_skipped"
 	EventTourCompleted EventType = "tour_completed"
 	EventTourDismissed EventType = "tour_dismissed"
 )
@@ -32,6 +33,7 @@ type StepAnalytics struct {
 	Step      int       `json:"step"`
 	Shown     int       `json:"shown"`
 	Completed int       `json:"completed"`
+	Skipped   int       `json:"skipped"`
 	DropOff   int       `json:"drop_off"`
 }
 

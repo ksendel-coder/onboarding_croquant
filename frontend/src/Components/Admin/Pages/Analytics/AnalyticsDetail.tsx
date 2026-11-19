@@ -55,6 +55,7 @@ export function AnalyticsDetail() {
                   </div>
                   <div className={styles.panel__steps__stat}><span>Показано</span><strong>{step.shown}</strong></div>
                   <div className={styles.panel__steps__stat}><span>Завершено</span><strong>{step.completed}</strong></div>
+                  <div className={styles.panel__steps__stat}><span>Автопропуски</span><strong>{step.skipped ?? "—"}</strong></div>
                   <div className={styles.panel__steps__stat}><span>Показано без завершения</span><strong>{step.drop_off}</strong></div>
                 </article>
               ))}

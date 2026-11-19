@@ -239,6 +239,27 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	require.EqualValues(t, 1, metrics["started"])
 	require.EqualValues(t, 1, metrics["completed"])
 
+	skipSubject, skipAttempt := uuid.NewString(), uuid.New()
+	skipResolve := request(http.MethodPost, resolvePath, map[string]any{
+		"url": origin + "/mvp12", "subject_id": skipSubject, "session_id": "skip-test",
+	}, "", key, origin)
+	expect(skipResolve, http.StatusOK)
+	skipped := event("hint_skipped", &firstHint)
+	skipped["subject_id"], skipped["attempt_id"] = skipSubject, skipAttempt
+	expect(request(http.MethodPost, eventsPath, skipped, "", key, origin), http.StatusAccepted)
+	expect(request(http.MethodPost, eventsPath, skipped, "", key, origin), http.StatusOK)
+	skipResume := request(http.MethodPost, resolvePath, map[string]any{
+		"url": origin + "/mvp12", "subject_id": skipSubject, "session_id": "skip-resume",
+	}, "", key, origin)
+	expect(skipResume, http.StatusOK)
+	require.Equal(t, secondHint.String(), stringField(decode(skipResume), "current_hint_id"))
+	skipAnalytics := request(http.MethodGet, analyticsPath, nil, token, "", "")
+	expect(skipAnalytics, http.StatusOK)
+	firstStep := decode(skipAnalytics)["steps"].([]any)[0].(map[string]any)
+	require.EqualValues(t, 1, firstStep["shown"])
+	require.EqualValues(t, 1, firstStep["completed"])
+	require.EqualValues(t, 1, firstStep["skipped"])
+
 	// 4. Republish different audience settings; old active progress is not reassigned.
 	oldSubject := "mvp12-active-" + uuid.NewString()
 	oldBody := map[string]any{"url": origin + "/mvp12", "subject_id": oldSubject,
