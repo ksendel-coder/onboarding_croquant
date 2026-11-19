@@ -184,12 +184,20 @@ function findTarget(selector) {
   }
 }
 
-function positionHint(panel, spotlight, hint) {
-  const target = findTarget(hint.selector);
+function getTargetRect(target) {
   const rect = target?.getBoundingClientRect();
-  const visible = Boolean(rect && rect.width > 0 && rect.height > 0 &&
-    rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight &&
-    target.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) !== false);
+  if (!rect || rect.width <= 0 || rect.height <= 0 ||
+    target.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) === false) return null;
+  return rect;
+}
+
+function isInViewport(rect) {
+  return rect && rect.right > 0 && rect.bottom > 0 &&
+    rect.left < window.innerWidth && rect.top < window.innerHeight;
+}
+
+function positionHint(panel, spotlight, hint, rect) {
+  const visible = isInViewport(rect);
   panel.hidden = spotlight.hidden = !visible;
   if (!visible) return false;
 
@@ -326,8 +334,20 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
     content.replaceChildren(spotlight, panel);
 
     let shown = false;
+    let scrolledTarget;
     updatePosition = () => {
-      if (!positionHint(panel, spotlight, hint)) {
+      const target = findTarget(hint.selector);
+      let rect = getTargetRect(target);
+      if (rect && target !== scrolledTarget) {
+        scrolledTarget = target;
+        target.scrollIntoView({
+          block: isInViewport(rect) ? "nearest" : "center",
+          inline: "nearest",
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+        });
+        rect = getTargetRect(target);
+      }
+      if (!positionHint(panel, spotlight, hint, rect)) {
         cancelPaint();
         return;
       }
@@ -337,7 +357,7 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
       paintFrame = window.requestAnimationFrame(() => {
         paintFrame = window.requestAnimationFrame(() => {
           paintFrame = null;
-          if (signal.aborted || !positionHint(panel, spotlight, hint)) return;
+          if (signal.aborted || !positionHint(panel, spotlight, hint, getTargetRect(findTarget(hint.selector)))) return;
           void run(
             () => post("hint_shown", hint.id),
             "Не удалось записать показ подсказки.",
