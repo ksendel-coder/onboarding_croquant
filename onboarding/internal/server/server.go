@@ -194,6 +194,11 @@ func NewServer(cfg *config.ServerConfig, createStruct *CreateStruct) *serve.Serv
 				createStruct.AuthController.Me,
 			)
 
+			protectedAuth.PATCH(
+				"/me",
+				createStruct.AuthController.UpdateNames,
+			)
+
 			protectedAuth.POST(
 				"/logout",
 				createStruct.AuthController.Logout,

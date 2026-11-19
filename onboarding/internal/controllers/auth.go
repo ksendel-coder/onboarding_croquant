@@ -21,6 +21,7 @@ type (
 		Login(ctx *gin.Context)
 		Me(ctx *gin.Context)
 		Logout(ctx *gin.Context)
+		UpdateNames(ctx *gin.Context)
 	}
 )
 
@@ -179,4 +180,27 @@ func (ac *AuthController) Logout(
 	ctx.Status(
 		http.StatusNoContent,
 	)
+}
+
+func (ac *AuthController) UpdateNames(ctx *gin.Context) {
+	userId, err := currentUserId(ctx)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	var body request.UpdateNamesRequest
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Error(&errs.BindingError{
+			Err: err, Zone: errs.Body, Code: http.StatusBadRequest,
+		})
+		return
+	}
+	user, err := ac.domain.UpdateNames(
+		ctx.Request.Context(), userId, body.FirstName, body.LastName,
+	)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, response.NewUser(user))
 }
