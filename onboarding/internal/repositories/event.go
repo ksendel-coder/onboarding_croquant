@@ -288,12 +288,22 @@ func (r *EventRepository) Analytics(
 	}
 
 	err := r.pool.QueryRow(ctx, `
+		WITH attempts AS (
+			SELECT
+				BOOL_OR(event_type = 'tour_started') AS started,
+				BOOL_OR(event_type = 'tour_completed') AS finished,
+				BOOL_OR(event_type = 'hint_completed') AS completed_step,
+				BOOL_OR(event_type = 'tour_dismissed') AS dismissed
+			FROM tour_events
+			WHERE tour_id=$1 AND tour_version_id=$2
+				AND event_type IN ('tour_started', 'tour_completed', 'hint_completed', 'tour_dismissed')
+			GROUP BY subject_id, attempt_id
+		)
 		SELECT
-			COUNT(DISTINCT attempt_id) FILTER (WHERE event_type='tour_started'),
-			COUNT(DISTINCT attempt_id) FILTER (WHERE event_type='tour_completed'),
-			COUNT(DISTINCT attempt_id) FILTER (WHERE event_type='tour_dismissed')
-		FROM tour_events
-		WHERE tour_id=$1 AND tour_version_id=$2`,
+			COUNT(*) FILTER (WHERE started),
+			COUNT(*) FILTER (WHERE started AND finished AND completed_step),
+			COUNT(*) FILTER (WHERE dismissed)
+		FROM attempts`,
 		tourId,
 		versionId,
 	).Scan(&result.Started, &result.Completed, &result.Dismissed)

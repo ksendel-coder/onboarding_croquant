@@ -261,18 +261,29 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 		"url": origin + "/mvp12", "subject_id": skipSubject, "session_id": "skip-test",
 	}, "", key, origin)
 	expect(skipResolve, http.StatusOK)
+	recordSkipAttempt := func(body map[string]any, status int) {
+		body["subject_id"], body["attempt_id"] = skipSubject, skipAttempt
+		expect(request(http.MethodPost, eventsPath, body, "", key, origin), status)
+	}
+	recordSkipAttempt(event("tour_started", nil), http.StatusAccepted)
 	skipped := event("hint_skipped", &firstHint)
-	skipped["subject_id"], skipped["attempt_id"] = skipSubject, skipAttempt
-	expect(request(http.MethodPost, eventsPath, skipped, "", key, origin), http.StatusAccepted)
-	expect(request(http.MethodPost, eventsPath, skipped, "", key, origin), http.StatusOK)
+	recordSkipAttempt(skipped, http.StatusAccepted)
+	recordSkipAttempt(skipped, http.StatusOK)
 	skipResume := request(http.MethodPost, resolvePath, map[string]any{
 		"url": origin + "/mvp12", "subject_id": skipSubject, "session_id": "skip-resume",
 	}, "", key, origin)
 	expect(skipResume, http.StatusOK)
 	require.Equal(t, secondHint.String(), stringField(decode(skipResume), "current_hint_id"))
+	recordSkipAttempt(event("hint_skipped", &secondHint), http.StatusAccepted)
+	recordSkipAttempt(event("tour_completed", nil), http.StatusAccepted)
 	skipAnalytics := request(http.MethodGet, analyticsPath, nil, token, "", "")
 	expect(skipAnalytics, http.StatusOK)
-	firstStep := decode(skipAnalytics)["steps"].([]any)[0].(map[string]any)
+	skipMetrics := decode(skipAnalytics)
+	require.EqualValues(t, 2, skipMetrics["started"])
+	require.EqualValues(t, 1, skipMetrics["completed"])
+	require.EqualValues(t, 0, skipMetrics["dismissed"])
+	require.EqualValues(t, 50, skipMetrics["completion_rate"])
+	firstStep := skipMetrics["steps"].([]any)[0].(map[string]any)
 	require.EqualValues(t, 1, firstStep["shown"])
 	require.EqualValues(t, 1, firstStep["completed"])
 	require.EqualValues(t, 1, firstStep["skipped"])
