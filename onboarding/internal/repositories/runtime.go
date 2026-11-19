@@ -52,13 +52,14 @@ func (rr *RuntimeRepository) CreateApp(
 			allowed_origins
 		)
 		VALUES ($1, $2, $3)
-		RETURNING id, created_at`,
+		RETURNING id, created_at, primary_color, background_color, text_color`,
 		a.Name,
 		a.PublicKey,
 		a.AllowedOrigins,
 	).Scan(
 		&a.Id,
 		&a.CreatedAt,
+		&a.Theme.PrimaryColor, &a.Theme.BackgroundColor, &a.Theme.TextColor,
 	)
 	if err != nil {
 		return wrap(
@@ -110,7 +111,7 @@ func (rr *RuntimeRepository) ListApps(
 			a.public_key,
 			a.allowed_origins,
 			a.created_at,
-			a.archived_at
+			a.archived_at, a.primary_color, a.background_color, a.text_color
 		FROM apps a
 		JOIN user_apps ua
 		  ON ua.app_id = a.id
@@ -144,6 +145,7 @@ func (rr *RuntimeRepository) ListApps(
 			&a.AllowedOrigins,
 			&a.CreatedAt,
 			&a.ArchivedAt,
+			&a.Theme.PrimaryColor, &a.Theme.BackgroundColor, &a.Theme.TextColor,
 		); err != nil {
 			return nil, wrap(
 				err,
@@ -166,7 +168,7 @@ func (rr *RuntimeRepository) AppByKey(ctx context.Context, key string) (*domains
 	a := new(domains.App)
 
 	err := rr.pool.QueryRow(ctx, `
-		SELECT id, name, public_key, allowed_origins, created_at, archived_at
+		SELECT id, name, public_key, allowed_origins, created_at, archived_at, primary_color, background_color, text_color
 		FROM apps
 		WHERE public_key = $1 AND archived_at IS NULL`,
 		key,
@@ -177,6 +179,7 @@ func (rr *RuntimeRepository) AppByKey(ctx context.Context, key string) (*domains
 		&a.AllowedOrigins,
 		&a.CreatedAt,
 		&a.ArchivedAt,
+		&a.Theme.PrimaryColor, &a.Theme.BackgroundColor, &a.Theme.TextColor,
 	)
 
 	if err != nil {
@@ -307,6 +310,7 @@ func (rr *RuntimeRepository) UpdateApp(
 	id uuid.UUID,
 	name *string,
 	allowedOrigins []string,
+	theme domains.ThemePatch,
 ) (*domains.App, error) {
 	set := make(
 		[]string,
@@ -347,6 +351,19 @@ func (rr *RuntimeRepository) UpdateApp(
 		)
 	}
 
+	for _, field := range []struct {
+		column string
+		value  *string
+	}{
+		{"primary_color", theme.PrimaryColor},
+		{"background_color", theme.BackgroundColor},
+		{"text_color", theme.TextColor},
+	} {
+		if field.value != nil {
+			args = append(args, *field.value)
+			set = append(set, fmt.Sprintf("%s = $%d", field.column, len(args)))
+		}
+	}
 	if len(set) == 0 {
 		return rr.appByIdForUser(
 			ctx,
@@ -384,7 +401,7 @@ func (rr *RuntimeRepository) UpdateApp(
 			public_key,
 			allowed_origins,
 			created_at,
-			archived_at`,
+			archived_at, primary_color, background_color, text_color`,
 		strings.Join(
 			set,
 			", ",
@@ -406,6 +423,7 @@ func (rr *RuntimeRepository) UpdateApp(
 		&a.AllowedOrigins,
 		&a.CreatedAt,
 		&a.ArchivedAt,
+		&a.Theme.PrimaryColor, &a.Theme.BackgroundColor, &a.Theme.TextColor,
 	)
 
 	if err != nil {
@@ -434,7 +452,7 @@ func (rr *RuntimeRepository) appByIdForUser(
 			a.public_key,
 			a.allowed_origins,
 			a.created_at,
-			a.archived_at
+			a.archived_at, a.primary_color, a.background_color, a.text_color
 		FROM apps a
 		JOIN user_apps ua
 		  ON ua.app_id = a.id
@@ -450,6 +468,7 @@ func (rr *RuntimeRepository) appByIdForUser(
 		&a.AllowedOrigins,
 		&a.CreatedAt,
 		&a.ArchivedAt,
+		&a.Theme.PrimaryColor, &a.Theme.BackgroundColor, &a.Theme.TextColor,
 	)
 
 	if err != nil {
