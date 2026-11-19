@@ -7,6 +7,7 @@ import (
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/domains"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/http/request"
 	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/http/response"
+	"github.com/ksendel-coder/onboarding_croquant/onboarding/internal/middlewares"
 	"github.com/ksendel-coder/onboarding_croquant/platform/errs"
 )
 
@@ -186,10 +187,15 @@ func (rc *RuntimeController) Resolve(
 		return
 	}
 
-	ctx.JSON(
-		http.StatusOK,
-		response.NewResolveResult(result),
-	)
+	value, _ := ctx.Get(middlewares.ContextApp)
+	app, ok := value.(*domains.App)
+	if !ok || app == nil {
+		ctx.Error(&errs.PermissionError{Err: domains.ErrUnauthorized, Code: http.StatusUnauthorized})
+		return
+	}
+	out := response.NewResolveResult(result)
+	out.Theme = app.Theme
+	ctx.JSON(http.StatusOK, out)
 }
 
 // UpdateApp godoc
@@ -245,6 +251,7 @@ func (rc *RuntimeController) UpdateApp(
 		appId,
 		body.Name,
 		body.AllowedOrigins,
+		body.Theme,
 	)
 	if err != nil {
 		ctx.Error(err)

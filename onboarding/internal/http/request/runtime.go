@@ -18,8 +18,9 @@ type CreateAppRequest struct {
 }
 
 type UpdateAppRequest struct {
-	Name           *string  `json:"name,omitempty"`
-	AllowedOrigins []string `json:"allowed_origins,omitempty"`
+	Theme          domains.ThemePatch `json:"theme"`
+	Name           *string            `json:"name,omitempty"`
+	AllowedOrigins []string           `json:"allowed_origins,omitempty"`
 }
 
 func (r *ResolveRequest) ToDomain(

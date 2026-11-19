@@ -8,12 +8,13 @@ import (
 )
 
 type App struct {
-	Id             uuid.UUID  `json:"id" format:"uuid"`
-	Name           string     `json:"name" example:"Demo classifieds"`
-	PublicKey      string     `json:"public_key" example:"pk_demo_7f3a91c4b2e85d60"`
-	AllowedOrigins []string   `json:"allowed_origins" example:"http://localhost:3000"`
-	CreatedAt      time.Time  `json:"created_at" format:"date-time"`
-	ArchivedAt     *time.Time `json:"archived_at,omitempty" format:"date-time"`
+	Theme          domains.Theme `json:"theme"`
+	Id             uuid.UUID     `json:"id" format:"uuid"`
+	Name           string        `json:"name" example:"Demo classifieds"`
+	PublicKey      string        `json:"public_key" example:"pk_demo_7f3a91c4b2e85d60"`
+	AllowedOrigins []string      `json:"allowed_origins" example:"http://localhost:3000"`
+	CreatedAt      time.Time     `json:"created_at" format:"date-time"`
+	ArchivedAt     *time.Time    `json:"archived_at,omitempty" format:"date-time"`
 }
 
 type Health struct {
@@ -22,11 +23,12 @@ type Health struct {
 }
 
 type ResolveResult struct {
-	Tour          *Tour      `json:"tour"`
-	TourVersionId uuid.UUID  `json:"tour_version_id" format:"uuid"`
-	Version       int        `json:"version" example:"1"`
-	CurrentHintId *uuid.UUID `json:"current_hint_id,omitempty" format:"uuid"`
-	AttemptId     *uuid.UUID `json:"attempt_id,omitempty" format:"uuid"`
+	Theme         domains.Theme `json:"theme"`
+	Tour          *Tour         `json:"tour"`
+	TourVersionId uuid.UUID     `json:"tour_version_id" format:"uuid"`
+	Version       int           `json:"version" example:"1"`
+	CurrentHintId *uuid.UUID    `json:"current_hint_id,omitempty" format:"uuid"`
+	AttemptId     *uuid.UUID    `json:"attempt_id,omitempty" format:"uuid"`
 }
 
 func NewApp(a *domains.App) *App {
@@ -35,6 +37,7 @@ func NewApp(a *domains.App) *App {
 	}
 
 	return &App{
+		Theme:          a.Theme,
 		Id:             a.Id,
 		Name:           a.Name,
 		PublicKey:      a.PublicKey,

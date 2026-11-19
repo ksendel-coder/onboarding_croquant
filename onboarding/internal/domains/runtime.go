@@ -33,6 +33,7 @@ type (
 			id uuid.UUID,
 			name *string,
 			allowedOrigins []string,
+			theme ThemePatch,
 		) (*App, error)
 		Resolve(
 			ctx context.Context,
@@ -67,6 +68,7 @@ type (
 			id uuid.UUID,
 			name *string,
 			allowedOrigins []string,
+			theme ThemePatch,
 		) (*App, error)
 		Ping(ctx context.Context) error
 	}
@@ -135,7 +137,12 @@ func (rd *RuntimeDomain) UpdateApp(
 	id uuid.UUID,
 	name *string,
 	allowedOrigins []string,
+	theme ThemePatch,
 ) (*App, error) {
+	theme, err := NormalizeThemePatch(theme)
+	if err != nil {
+		return nil, logicErr(err, "app update", http.StatusBadRequest)
+	}
 	var normalized []string
 
 	if allowedOrigins != nil {
@@ -159,6 +166,7 @@ func (rd *RuntimeDomain) UpdateApp(
 		id,
 		name,
 		normalized,
+		theme,
 	)
 }
 

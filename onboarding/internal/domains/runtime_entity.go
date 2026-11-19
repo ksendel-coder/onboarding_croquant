@@ -7,6 +7,7 @@ import (
 )
 
 type App struct {
+	Theme          Theme
 	Id             uuid.UUID
 	Name           string
 	PublicKey      string
