@@ -131,6 +131,24 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
                   className={stepErrors.content ? styles.field__inputError : ""}
                 />
               </label>
+              <label>
+                <div className={styles.field__header}>
+                  <span>Путь страницы шага</span>
+                  {stepErrors.page_path && <span className={styles.field__error} role="alert">{stepErrors.page_path}</span>}
+                </div>
+                <input
+                  value={stepForm.page_path ?? ""}
+                  placeholder="/widget-test/profile"
+                  aria-invalid={Boolean(stepErrors.page_path)}
+                  aria-describedby="hint-page-path-help"
+                  className={stepErrors.page_path ? styles.field__inputError : ""}
+                  onChange={(event) => {
+                    setStepForm((previous) => ({ ...previous, page_path: event.target.value }));
+                    setStepErrors((previous) => ({ ...previous, page_path: undefined }));
+                  }}
+                />
+                <small id="hint-page-path-help">Пустое поле сохраняет текущую страницу сценария.</small>
+              </label>
               <div className={styles.selector__field}>
                 <div className={styles.field__header}>
                   <label htmlFor="hint-selector">Элемент сайта</label>

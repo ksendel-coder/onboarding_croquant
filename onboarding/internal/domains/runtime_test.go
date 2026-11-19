@@ -18,6 +18,7 @@ type runtimeTourRepositoryStub struct {
 func (s *runtimeTourRepositoryStub) ResolveCandidates(
 	context.Context,
 	uuid.UUID,
+	string,
 ) ([]*Tour, error) {
 	return s.candidates, nil
 }
@@ -51,12 +52,12 @@ func (s *runtimeRepositoryStub) SubjectProgress(
 func (s *runtimeRepositoryStub) UpsertProgress(
 	_ context.Context,
 	p *Progress,
-) error {
+) (bool, error) {
 	s.upsertCalls++
 
 	copy := *p
 	s.progress[p.TourId] = &copy
-	return nil
+	return true, nil
 }
 
 func newRuntimeTestDomain(
@@ -289,21 +290,34 @@ func TestRuntimeResolveMaxShowsContinuesInProgressTour(t *testing.T) {
 	assert.Equal(t, hint.Id, *result.CurrentHintId)
 }
 
-func TestRuntimeResolveDoesNotRestartCompletedVersion(t *testing.T) {
+func TestRuntimeResolveRepeatsSameVersionUntilMaxShows(t *testing.T) {
 	tour := publishedRuntimeTour()
-	domain, progress := newRuntimeTestDomain([]*Tour{tour}, nil)
+	tour.Audience = &Audience{MaxShows: 2}
+	hint := Hint{Id: uuid.New(), TourVersionId: tour.VersionId, Step: 1}
+	domain, progress := newRuntimeTestDomain([]*Tour{tour}, map[uuid.UUID][]Hint{tour.VersionId: {hint}})
+	previousAttempt := uuid.New()
 	progress.progress[tour.Id] = &Progress{
 		AppId: tour.AppId, SubjectId: "user-1", TourId: tour.Id,
 		TourVersionId: tour.VersionId, Status: ProgressCompleted, ShowsCount: 1,
+		AttemptId: &previousAttempt,
 	}
 
-	result, err := domain.Resolve(context.Background(), ResolveRequest{
+	req := ResolveRequest{
 		AppId: tour.AppId, SubjectId: "user-1", Url: "/dashboard",
-	})
+	}
+	result, err := domain.Resolve(context.Background(), req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.AttemptId)
+	assert.NotEqual(t, previousAttempt, *result.AttemptId)
+	assert.Equal(t, hint.Id, *result.CurrentHintId)
+	assert.Equal(t, 2, progress.progress[tour.Id].ShowsCount)
 
+	progress.progress[tour.Id].Status = ProgressDismissed
+	result, err = domain.Resolve(context.Background(), req)
 	require.NoError(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, 1, progress.progress[tour.Id].ShowsCount)
+	assert.Equal(t, 2, progress.progress[tour.Id].ShowsCount)
 }
 
 func TestRuntimeResolveDoesNotReplaceActiveOlderVersion(t *testing.T) {

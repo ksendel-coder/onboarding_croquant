@@ -32,6 +32,7 @@ const hintColumns = `
 	title,
 	content,
 	selector,
+	page_path,
 	placement,
 	created_at,
 	updated_at
@@ -48,9 +49,10 @@ func (hr *HintRepository) Create(
 			title,
 			content,
 			selector,
+			page_path,
 			placement
 		)
-		VALUES ($1,$2,$3,$4,$5,$6)
+		VALUES ($1,$2,$3,$4,$5,$6,$7)
 		RETURNING
 			id,
 			created_at,
@@ -60,6 +62,7 @@ func (hr *HintRepository) Create(
 		h.Title,
 		h.Content,
 		h.Selector,
+		h.PagePath,
 		h.Placement,
 	).Scan(
 		&h.Id,
@@ -158,7 +161,8 @@ func (hr *HintRepository) Update(
 				title = $2,
 				content = $3,
 				selector = $4,
-				placement = $5
+				placement = $5,
+				page_path = $6
 			WHERE id = $1
 			RETURNING `+hintColumns,
 			h.Id,
@@ -166,6 +170,7 @@ func (hr *HintRepository) Update(
 			h.Content,
 			h.Selector,
 			h.Placement,
+			h.PagePath,
 		),
 	)
 	if err != nil {
@@ -359,6 +364,7 @@ func scanHint(
 		&h.Title,
 		&h.Content,
 		&h.Selector,
+		&h.PagePath,
 		&h.Placement,
 		&h.CreatedAt,
 		&h.UpdatedAt,

@@ -3,6 +3,7 @@ package domains
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,7 +60,7 @@ type (
 		UpsertProgress(
 			ctx context.Context,
 			p *Progress,
-		) error
+		) (bool, error)
 		UpdateApp(
 			ctx context.Context,
 			userId uuid.UUID,
@@ -186,6 +187,7 @@ func (rd *RuntimeDomain) Resolve(
 	candidates, err := rd.tours.ResolveCandidates(
 		ctx,
 		req.AppId,
+		req.SubjectId,
 	)
 	if err != nil {
 		return nil, err
@@ -205,6 +207,18 @@ func (rd *RuntimeDomain) Resolve(
 	}
 
 	path := PathFromURL(req.Url)
+	// Resume before starting another tour, including when a step changes pages.
+	for _, tour := range candidates {
+		current := progress[tour.Id]
+		if !tour.Enabled || (tour.Status != TourPublished && tour.Status != TourArchived) || current == nil ||
+			current.Status != ProgressInProgress || current.TourVersionId != tour.VersionId {
+			continue
+		}
+		resumed, err := rd.startScenario(ctx, req, tour, current, path)
+		if err != nil || resumed != nil {
+			return resumed, err
+		}
+	}
 
 	for _, tour := range candidates {
 		if !tour.Enabled || tour.Status != TourPublished {
@@ -223,18 +237,7 @@ func (rd *RuntimeDomain) Resolve(
 			// Если пользователь проходит старую опубликованную версию,
 			// не перезаписываем её новой версией из /resolve.
 			// События MVP-06 сверяются с tour_progress.tour_version_id.
-			if current.Status == ProgressInProgress && current.TourVersionId != tour.VersionId {
-				continue
-			}
-
-			// Повторный resolve текущей активной версии:
-			// продолжить без нового показа и сброса шага.
-			if current.Status == ProgressInProgress && current.TourVersionId == tour.VersionId {
-				return rd.startScenario(ctx, req, tour, current)
-			}
-
-			// Завершённую или закрытую ту же версию заново не запускаем.
-			if current.TourVersionId == tour.VersionId {
+			if current.Status == ProgressInProgress {
 				continue
 			}
 		}
@@ -256,6 +259,7 @@ func (rd *RuntimeDomain) Resolve(
 			req,
 			tour,
 			current,
+			path,
 		)
 	}
 
@@ -267,6 +271,7 @@ func (rd *RuntimeDomain) startScenario(
 	req ResolveRequest,
 	tour *Tour,
 	current *Progress,
+	path string,
 ) (*ResolveResult, error) {
 	hints, err := rd.hints.ListByVersion(
 		ctx,
@@ -276,58 +281,71 @@ func (rd *RuntimeDomain) startScenario(
 		return nil, err
 	}
 
+	newProgress := current == nil || current.Status != ProgressInProgress
+	if !newProgress && !MatchPath(tour.TargetPath, path) {
+		var pagePath string
+		for _, hint := range hints {
+			if hint.PagePath != "" {
+				pagePath, _ = url.PathUnescape(hint.PagePath)
+			}
+			if current.CurrentHintId != nil && hint.Id == *current.CurrentHintId {
+				break
+			}
+		}
+		if !MatchPath(pagePath, path) {
+			return nil, nil
+		}
+	}
+
 	tour.Hints = hints
 	tour.StepsCount = len(hints)
-
-	now := time.Now().UTC()
-	newProgress := current == nil || current.TourVersionId != tour.VersionId
-
-	switch {
-	case current == nil:
-		current = &Progress{
-			AppId:         req.AppId,
-			SubjectId:     req.SubjectId,
-			TourId:        tour.Id,
-			TourVersionId: tour.VersionId,
-			Status:        ProgressInProgress,
-			ShowsCount:    1,
-			StartedAt:     now,
-		}
-
-	case current.TourVersionId != tour.VersionId:
-		current = &Progress{
-			AppId:         req.AppId,
-			SubjectId:     req.SubjectId,
-			TourId:        tour.Id,
-			TourVersionId: tour.VersionId,
-			Status:        ProgressInProgress,
-			ShowsCount:    current.ShowsCount + 1,
-			StartedAt:     now,
-		}
-
-	default:
-		// Повторный /resolve: не увеличиваем shows_count,
-		// не меняем started_at и текущий шаг.
-	}
-
-	if newProgress && len(hints) > 0 {
-		current.CurrentHintId = &hints[0].Id
-	}
-
 	if newProgress {
-		if err := rd.runtime.UpsertProgress(
-			ctx,
-			current,
-		); err != nil {
+		shows := 1
+		if current != nil {
+			shows += current.ShowsCount
+		}
+		attemptId := uuid.New()
+		next := &Progress{
+			AppId:         req.AppId,
+			SubjectId:     req.SubjectId,
+			TourId:        tour.Id,
+			TourVersionId: tour.VersionId,
+			Status:        ProgressInProgress,
+			ShowsCount:    shows,
+			StartedAt:     time.Now().UTC(),
+			AttemptId:     &attemptId,
+		}
+		if len(hints) > 0 {
+			next.CurrentHintId = &hints[0].Id
+		}
+		written, err := rd.runtime.UpsertProgress(ctx, next)
+		if err != nil {
 			return nil, err
 		}
+		current = next
+		if !written {
+			progress, err := rd.runtime.SubjectProgress(ctx, req.AppId, req.SubjectId)
+			if err != nil {
+				return nil, err
+			}
+			current = progress[tour.Id]
+			if current == nil || current.Status != ProgressInProgress || current.TourVersionId != tour.VersionId {
+				return nil, nil
+			}
+		}
 	}
 
+	attemptId := current.AttemptId
+	if attemptId == nil {
+		id := uuid.NewSHA1(tour.VersionId, []byte(req.SubjectId))
+		attemptId = &id
+	}
 	return &ResolveResult{
 		Tour:          tour,
 		TourVersionId: tour.VersionId,
 		Version:       tour.Version,
 		CurrentHintId: current.CurrentHintId,
+		AttemptId:     attemptId,
 	}, nil
 }
 

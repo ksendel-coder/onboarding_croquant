@@ -1,6 +1,6 @@
 import type { Hint } from "./hint";
 
-export type WidgetEventType = "tour_started" | "hint_shown" | "hint_completed" | "tour_completed" | "tour_dismissed";
+export type WidgetEventType = "tour_started" | "hint_shown" | "hint_completed" | "hint_skipped" | "tour_completed" | "tour_dismissed";
 
 export interface ResolvedTour {
   id: string;

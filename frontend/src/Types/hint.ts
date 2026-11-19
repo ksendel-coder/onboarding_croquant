@@ -7,6 +7,7 @@ export interface Hint {
   title: string;
   content: string;
   selector: string;
+  page_path?: string;
   placement: HintPlacement;
   created_at: string;
   updated_at: string;
@@ -16,6 +17,7 @@ export interface CreateHintRequest {
   title: string;
   content: string;
   selector: string;
+  page_path?: string;
   placement: HintPlacement;
 }
 

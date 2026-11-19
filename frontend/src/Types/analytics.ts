@@ -1,8 +1,15 @@
+export interface TourVersionHistoryItem {
+  id: string;
+  version: number;
+  status: "draft" | "published" | "archived";
+}
+
 export interface StepAnalytics {
   hint_id: string;
   step: number;
   shown: number;
   completed: number;
+  skipped: number;
   drop_off: number;
 }
 export interface TourAnalytics {

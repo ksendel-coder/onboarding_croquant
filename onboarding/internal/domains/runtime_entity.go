@@ -29,6 +29,7 @@ type Progress struct {
 	TourId        uuid.UUID
 	TourVersionId uuid.UUID
 	CurrentHintId *uuid.UUID
+	AttemptId     *uuid.UUID
 	Status        ProgressStatus
 	ShowsCount    int
 	StartedAt     time.Time
@@ -49,4 +50,5 @@ type ResolveResult struct {
 	TourVersionId uuid.UUID
 	Version       int
 	CurrentHintId *uuid.UUID
+	AttemptId     *uuid.UUID
 }

@@ -19,9 +19,13 @@ function ScenariosComponent() {
   const navigate = useNavigate();
 
   const filteredScenarios = useMemo(() => {
-    return scenarios.filter((item) => {
+    return scenarios.map((item) => ({
+      item,
+      isPublished: item.has_published && !item.has_unpublished_changes,
+    })).filter(({ item, isPublished }) => {
       const matchesSearch = item.title.toLowerCase().includes(search.trim().toLowerCase());
-      const matchesStatus = status === "all" || item.status === status;
+      const displayStatus = isPublished ? "published" : "draft";
+      const matchesStatus = status === "all" || displayStatus === status;
       return matchesSearch && matchesStatus;
     });
   }, [scenarios, search, status]);
@@ -85,17 +89,22 @@ function ScenariosComponent() {
                 </td>
               </tr>
           ) : (
-          filteredScenarios.map((item) => (
+          filteredScenarios.map(({ item, isPublished }) => (
             <tr className={styles.page__table__row} key={item.id}>
               <td className={styles.page__table__row__name}>{item.title}</td>
 
               <td>
-                <span className={cn(styles.page__table__row__status, item.status === "published"
+                <span className={cn(styles.page__table__row__status, isPublished
                   ? styles.page__table__row__status__success : styles.page__table__row__status__warning)}
                 >
                 <span className={styles.page__table__row__status__dot} />
-                  {item.status === "published" ? "Опубликован" : "Черновик"}
+                  {isPublished ? "Опубликован" : "Черновик"}
                 </span>
+                {item.has_published && item.has_unpublished_changes && (
+                  <div className={styles.page__table__row__publicationNote}>
+                    Опубликованная версия активна
+                  </div>
+                )}
               </td>
 
               <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "—"}</td>

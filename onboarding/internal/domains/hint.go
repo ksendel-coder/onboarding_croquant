@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/ksendel-coder/onboarding_croquant/platform/errs"
@@ -171,6 +174,9 @@ func (hd *HintDomain) Update(
 	if patch.Selector != nil {
 		current.Selector = *patch.Selector
 	}
+	if patch.PagePath != nil {
+		current.PagePath = *patch.PagePath
+	}
 
 	if patch.Title != nil {
 		current.Title = *patch.Title
@@ -326,6 +332,7 @@ func (hd *HintDomain) draftOf(
 func validateHint(
 	h *Hint,
 ) error {
+	h.PagePath = strings.TrimSpace(h.PagePath)
 	switch {
 	case h.Selector == "":
 		return logicErr(
@@ -340,8 +347,25 @@ func validateHint(
 			"hint validation",
 			http.StatusBadRequest,
 		)
+	case h.PagePath != "" && !validHintPagePath(h.PagePath):
+		return logicErr(ErrBadHintPagePath, "hint validation", http.StatusBadRequest)
 
 	default:
 		return nil
 	}
+}
+
+func validHintPagePath(path string) bool {
+	decoded, err := url.PathUnescape(path)
+	if err != nil || !strings.HasPrefix(path, "/") || strings.HasPrefix(decoded, "//") ||
+		strings.ContainsAny(decoded, "\\?#*") ||
+		strings.IndexFunc(decoded, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) >= 0 {
+		return false
+	}
+	for _, segment := range strings.Split(decoded, "/") {
+		if segment == "." || segment == ".." {
+			return false
+		}
+	}
+	return true
 }

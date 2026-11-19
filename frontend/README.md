@@ -1,4 +1,32 @@
-# React + TypeScript + Vite
+# Виджет онбординга
+
+Опубликуйте файл `public/onboarding-widget.js` как статический ресурс. Vite
+также копирует его в `dist/onboarding-widget.js` при сборке админки.
+Подключение на HTML-странице:
+
+```html
+<script type="module">
+  import { mountOnboardingWidget } from "/onboarding-widget.js";
+
+  mountOnboardingWidget({
+    apiUrl: "https://api.example.com/v1",
+    appKey: "PUBLIC_APP_KEY",
+  });
+</script>
+```
+
+Укажите публичный ключ приложения и добавьте origin страницы в
+`allowed_origins`. Страницу нужно открыть через HTTPS или localhost.
+В SPA вызовите функцию очистки, которую возвращает `mountOnboardingWidget`,
+при смене маршрута, а затем подключите виджет на новой странице.
+
+Для сценария на нескольких страницах выберите входной путь сценария и
+укажите путь страницы в первом шаге после каждого перехода, например
+`/widget-test/profile`. Шаги с пустым полем продолжаются на предыдущей
+странице. Виджет должен быть подключён на каждой странице с одинаковым
+публичным ключом. Переходы поддерживаются в пределах одного origin.
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

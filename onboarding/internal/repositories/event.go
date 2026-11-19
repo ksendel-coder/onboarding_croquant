@@ -40,15 +40,16 @@ func (r *EventRepository) Record(
 	var version uuid.UUID
 	var status string
 	var currentHintId *uuid.UUID
+	var attemptId *uuid.UUID
 	err = tx.QueryRow(ctx, `
-		SELECT p.tour_version_id, p.status, p.current_hint_id
+		SELECT p.tour_version_id, p.status, p.current_hint_id, p.attempt_id
 		FROM tour_progress p
 		WHERE p.app_id=$1 AND p.subject_id=$2 AND p.tour_id=$3
 		FOR UPDATE`,
 		event.AppId,
 		event.SubjectId,
 		event.TourId,
-	).Scan(&version, &status, &currentHintId)
+	).Scan(&version, &status, &currentHintId, &attemptId)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, invalidEvent("progress not found; call /resolve first", http.StatusConflict)
 	}
@@ -129,6 +130,9 @@ func (r *EventRepository) Record(
 	if status != string(domains.ProgressInProgress) {
 		return false, invalidEvent("scenario already finished", http.StatusConflict)
 	}
+	if attemptId != nil && *attemptId != event.AttemptId {
+		return false, invalidEvent("attempt_id does not match", http.StatusConflict)
+	}
 
 	var sameTypeExists bool
 	err = tx.QueryRow(ctx, `
@@ -137,12 +141,15 @@ func (r *EventRepository) Record(
 			FROM tour_events
 			WHERE app_id=$1 AND attempt_id=$2 AND tour_id=$3
 				AND event_type=$4 AND hint_id IS NOT DISTINCT FROM $5::uuid
+				AND subject_id=$6 AND tour_version_id=$7
 		)`,
 		event.AppId,
 		event.AttemptId,
 		event.TourId,
 		string(event.Type),
 		event.HintId,
+		event.SubjectId,
+		event.TourVersionId,
 	).Scan(&sameTypeExists)
 	if err != nil {
 		return false, err
@@ -151,31 +158,7 @@ func (r *EventRepository) Record(
 		return false, tx.Commit(ctx)
 	}
 
-	var anotherAttempt bool
-	err = tx.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1
-			FROM tour_events
-			WHERE app_id=$1
-				AND subject_id=$2
-				AND tour_id=$3
-				AND tour_version_id=$4
-				AND attempt_id<>$5
-		)`,
-		event.AppId,
-		event.SubjectId,
-		event.TourId,
-		event.TourVersionId,
-		event.AttemptId,
-	).Scan(&anotherAttempt)
-	if err != nil {
-		return false, err
-	}
-	if anotherAttempt {
-		return false, invalidEvent("attempt_id does not match", http.StatusConflict)
-	}
-
-	if event.Type == domains.EventHintCompleted {
+	if event.Type == domains.EventHintCompleted || event.Type == domains.EventHintSkipped {
 		if currentHintId == nil || event.HintId == nil || *currentHintId != *event.HintId {
 			return false, invalidEvent("hint is not current", http.StatusConflict)
 		}
@@ -194,6 +177,18 @@ func (r *EventRepository) Record(
 		}
 		if totalHints == 0 || currentHintId != nil {
 			return false, invalidEvent("scenario steps are not completed", http.StatusConflict)
+		}
+	}
+
+	if attemptId == nil {
+		// Progress created before attempts were stored can bind its first event.
+		_, err = tx.Exec(ctx, `
+			UPDATE tour_progress SET attempt_id=$4
+			WHERE app_id=$1 AND subject_id=$2 AND tour_id=$3`,
+			event.AppId, event.SubjectId, event.TourId, event.AttemptId,
+		)
+		if err != nil {
+			return false, err
 		}
 	}
 
@@ -217,7 +212,7 @@ func (r *EventRepository) Record(
 	}
 
 	switch event.Type {
-	case domains.EventHintCompleted:
+	case domains.EventHintCompleted, domains.EventHintSkipped:
 		_, err = tx.Exec(ctx, `
 			UPDATE tour_progress p
 			SET current_hint_id=(
@@ -288,12 +283,22 @@ func (r *EventRepository) Analytics(
 	}
 
 	err := r.pool.QueryRow(ctx, `
+		WITH attempts AS (
+			SELECT
+				BOOL_OR(event_type = 'tour_started') AS started,
+				BOOL_OR(event_type = 'tour_completed') AS finished,
+				BOOL_OR(event_type = 'hint_completed') AS completed_step,
+				BOOL_OR(event_type = 'tour_dismissed') AS dismissed
+			FROM tour_events
+			WHERE tour_id=$1 AND tour_version_id=$2
+				AND event_type IN ('tour_started', 'tour_completed', 'hint_completed', 'tour_dismissed')
+			GROUP BY subject_id, attempt_id
+		)
 		SELECT
-			COUNT(DISTINCT attempt_id) FILTER (WHERE event_type='tour_started'),
-			COUNT(DISTINCT attempt_id) FILTER (WHERE event_type='tour_completed'),
-			COUNT(DISTINCT attempt_id) FILTER (WHERE event_type='tour_dismissed')
-		FROM tour_events
-		WHERE tour_id=$1 AND tour_version_id=$2`,
+			COUNT(*) FILTER (WHERE started),
+			COUNT(*) FILTER (WHERE started AND finished AND completed_step),
+			COUNT(*) FILTER (WHERE dismissed)
+		FROM attempts`,
 		tourId,
 		versionId,
 	).Scan(&result.Started, &result.Completed, &result.Dismissed)
@@ -309,7 +314,8 @@ func (r *EventRepository) Analytics(
 			h.id,
 			h.step,
 			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_shown') AS shown,
-			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_completed') AS completed
+			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_completed') AS completed,
+			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_skipped') AS skipped
 		FROM hints h
 		LEFT JOIN tour_events e
 			ON e.hint_id=h.id AND e.tour_version_id=h.tour_version_id
@@ -325,7 +331,7 @@ func (r *EventRepository) Analytics(
 
 	for rows.Next() {
 		var step domains.StepAnalytics
-		if err := rows.Scan(&step.HintId, &step.Step, &step.Shown, &step.Completed); err != nil {
+		if err := rows.Scan(&step.HintId, &step.Step, &step.Shown, &step.Completed, &step.Skipped); err != nil {
 			return nil, err
 		}
 		step.DropOff = step.Shown - step.Completed

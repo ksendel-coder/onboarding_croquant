@@ -1,0 +1,17 @@
+.site { min-height: 100vh; background: #f5f6fa; color: #222; font-family: Arial, sans-serif; }
+.header { display: flex; justify-content: space-between; align-items: center; padding: 20px 32px; background: #202c46; }
+.logo { color: white; font-size: 20px; font-weight: 700; text-decoration: none; }
+.nav { display: flex; gap: 22px; }
+.nav a { color: #e7eaf1; text-decoration: none; }
+.nav a:hover { color: #fff; text-decoration: underline; }
+.main { max-width: 800px; margin: 48px auto; padding: 0 24px; }
+.main h1 { font-size: 32px; margin: 0 0 16px; }
+.main > p { margin-bottom: 28px; }
+.card { background: white; padding: 28px; border-radius: 14px; box-shadow: 0 4px 20px #17233b12; margin: 28px 0; }
+.card h2 { margin-top: 0; }
+.card label { display: block; margin-bottom: 8px; }
+.card input { display: block; width: 100%; max-width: 360px; padding: 12px; margin-bottom: 16px; border: 1px solid #aab1c0; border-radius: 8px; box-sizing: border-box; }
+.card button { padding: 12px 20px; border: 0; border-radius: 8px; color: #fff; background: #505de1; cursor: pointer; }
+.actionLink { color: #404dcd; font-weight: 600; }
+.error { margin: 24px; color: #a01717; }
+@media (max-width: 600px) { .header { padding: 18px; } .main { margin-top: 28px; } }

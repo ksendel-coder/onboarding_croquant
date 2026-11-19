@@ -6,10 +6,21 @@ import type { CreateHintRequest, Hint } from "../Types";
 import { isValidSelector } from "../Utils/domSelector";
 import { arrayMove } from "@dnd-kit/sortable";
 
-export const emptyStep: CreateHintRequest = { title: "", content: "", selector: "", placement: "bottom" };
+export const emptyStep: CreateHintRequest = { title: "", content: "", selector: "", page_path: "", placement: "bottom" };
+
+function isStepPagePath(value: string) {
+  try {
+    const path = decodeURIComponent(value);
+    return value.startsWith("/") && !path.startsWith("//") &&
+      !/[\\?#*\s\p{Cc}]/u.test(path) &&
+      !path.split("/").some((segment) => segment === "." || segment === "..");
+  } catch {
+    return false;
+  }
+}
 
 export function useScenarioSteps(tourId: string | undefined) {
-  type StepErrors = Partial<Record<"title" | "content" | "selector" | "placement", string>>;
+  type StepErrors = Partial<Record<"title" | "content" | "selector" | "page_path" | "placement", string>>;
 
   const isNew = !tourId;
   const queryClient = useQueryClient();
@@ -41,6 +52,10 @@ export function useScenarioSteps(tourId: string | undefined) {
     } else if (!isValidSelector(step.selector)) {
       errors.selector = "Некорректный CSS-селектор";
     }
+    const pagePath = step.page_path?.trim();
+    if (pagePath && !isStepPagePath(pagePath)) {
+      errors.page_path = "Укажите путь на этом сайте, например /profile";
+    }
     return errors;
   };
 
@@ -56,6 +71,7 @@ export function useScenarioSteps(tourId: string | undefined) {
       if (data.title !== current.title) patch.title = data.title;
       if (data.content !== current.content) patch.content = data.content;
       if (data.selector !== current.selector) patch.selector = data.selector;
+      if ((data.page_path ?? "") !== (current.page_path ?? "")) patch.page_path = data.page_path ?? "";
       if (data.placement !== current.placement) patch.placement = data.placement;
       return onboardingAPI.patchHint(tourId, editingHintId, patch);
     },
@@ -153,7 +169,7 @@ export function useScenarioSteps(tourId: string | undefined) {
 
   const editHint = (hint: Hint) => {
     setEditingHintId(hint.id);
-    setStepForm({ title: hint.title, content: hint.content, selector: hint.selector, placement: hint.placement });
+    setStepForm({ title: hint.title, content: hint.content, selector: hint.selector, page_path: hint.page_path ?? "", placement: hint.placement });
     setStepErrors({});
   };
 

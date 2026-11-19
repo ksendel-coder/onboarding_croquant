@@ -18,8 +18,8 @@
 
   &__metrics {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 51px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: 24px;
     margin-bottom: 29px;
 
     &__metricCard {
@@ -70,7 +70,7 @@
 
   &__tableWrapper {
     width: 100%;
-    overflow: hidden;
+    overflow: auto;
     background: #ffffff;
     border-radius: 20px;
     box-shadow:
@@ -105,16 +105,16 @@
         width: 10%;
       }
       &:nth-child(3) {
-        width: 18%;
+        width: 16%;
       }
       &:nth-child(4) {
-        width: 11%;
+        width: 16%;
       }
       &:nth-child(5) {
-        width: 20%;
+        width: 16%;
       }
       &:nth-child(6) {
-        width: 16%;
+        width: 17%;
       }
 
       &:first-child {

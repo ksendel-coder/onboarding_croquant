@@ -1,5 +1,5 @@
 import { api } from "./api";
-import type { App, CreateHintRequest, CreateTourRequest, Hint, HintPatchRequest, TourAnalytics, TourListItem, TourPreviewResponse, UpdateTourMetaRequest } from "../Types";
+import type { App, CreateHintRequest, CreateTourRequest, Hint, HintPatchRequest, TourAnalytics, TourListItem, TourPreviewResponse, TourVersionHistoryItem, UpdateTourMetaRequest } from "../Types";
 
 export const onboardingAPI = {
   getApps: () => api.get<App[]>("/apps").then((res) => res.data),
@@ -40,6 +40,9 @@ export const onboardingAPI = {
 
   
   
+  getTourVersions: (tourId: string) =>
+    api.get<TourVersionHistoryItem[]>(`/tours/${tourId}/versions`).then((response) => response.data),
+
   getTourAnalytics: (tourId: string, versionId: string) =>
     api.get<TourAnalytics>(`/tours/${tourId}/analytics`, {
       params: { version_id: versionId } }).then((response) => response.data)

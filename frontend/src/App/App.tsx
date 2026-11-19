@@ -12,6 +12,10 @@ import { AuthPage } from "../Components/Auth/AuthPage";
 import { ProtectedRoute } from "../Components/Auth/ProtectedRoute";
 import { ScenarioPreview } from "../Components/Admin/Pages/ScenarioPreview/ScenarioPreview";
 
+import { WidgetTestLayout } from "../Components/WidgetTest/WidgetTestLayout";
+import { WidgetTestHome } from "../Components/WidgetTest/WidgetTestHome";
+import { WidgetTestProfile } from "../Components/WidgetTest/WidgetTestProfile";
+
 const queryClient = new QueryClient();
 
 export default function App() {
@@ -23,6 +27,11 @@ export default function App() {
             <Route path="/" element={<Navigate to="/admin" replace />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/register" element={<AuthPage mode="register" />} />
+
+            <Route path="/widget-test" element={<WidgetTestLayout />}>
+              <Route index element={<WidgetTestHome />} />
+              <Route path="profile" element={<WidgetTestProfile />} />
+            </Route>
 
             <Route element={<ProtectedRoute />}>
               <Route path="/admin" element={<AdminShell />}>

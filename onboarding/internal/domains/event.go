@@ -20,10 +20,9 @@ func NewEventDomain(repo EventRepositoryInterface) *EventDomain {
 }
 
 func (d *EventDomain) Record(ctx context.Context, event TourEvent) (bool, error) {
-	validType := event.Type == EventTourStarted || event.Type == EventHintShown ||
-		event.Type == EventHintCompleted || event.Type == EventTourCompleted ||
+	isHint := event.Type == EventHintShown || event.Type == EventHintCompleted || event.Type == EventHintSkipped
+	validType := isHint || event.Type == EventTourStarted || event.Type == EventTourCompleted ||
 		event.Type == EventTourDismissed
-	isHint := event.Type == EventHintShown || event.Type == EventHintCompleted
 
 	if !validType || event.AppId == uuid.Nil || event.EventId == uuid.Nil ||
 		event.AttemptId == uuid.Nil || event.TourId == uuid.Nil ||
