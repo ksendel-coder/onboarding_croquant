@@ -185,6 +185,24 @@ function findTarget(selector) {
   }
 }
 
+function getStepDestination(hints, index) {
+  const path = hints.slice(0, index + 1).findLast((hint) => hint.page_path)?.page_path;
+  if (!path?.startsWith("/") || path.startsWith("//")) return null;
+
+  const current = new URL(window.location.href);
+  const destination = new URL(path, current);
+  if (destination.origin !== current.origin || destination.search || destination.hash) return null;
+
+  const comparablePath = (url) => {
+    try {
+      return decodeURIComponent(url.pathname).replace(/\/+$/, "");
+    } catch {
+      return url.pathname;
+    }
+  };
+  return comparablePath(current) === comparablePath(destination) ? null : destination;
+}
+
 function getTargetRect(target) {
   const rect = target?.getBoundingClientRect();
   if (!rect || rect.width <= 0 || rect.height <= 0 ||
@@ -324,6 +342,13 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
 
   function renderHint() {
     cancelTargetTimeout();
+    const destination = getStepDestination(hints, index);
+    if (destination) {
+      window.location.assign(destination.href);
+      destroy();
+      return;
+    }
+
     const hint = hints[index];
     const spotlight = createElement("div", "", "spotlight");
     spotlight.setAttribute("aria-hidden", "true");
@@ -389,6 +414,7 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
             () => {
               shown = true;
               close.disabled = next.disabled = false;
+              reposition();
             },
             renderHint,
           );

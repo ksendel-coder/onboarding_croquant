@@ -3,6 +3,7 @@ package domains
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -205,6 +206,18 @@ func (rd *RuntimeDomain) Resolve(
 	}
 
 	path := PathFromURL(req.Url)
+	// Resume before starting another tour, including when a step changes pages.
+	for _, tour := range candidates {
+		current := progress[tour.Id]
+		if !tour.Enabled || tour.Status != TourPublished || current == nil ||
+			current.Status != ProgressInProgress || current.TourVersionId != tour.VersionId {
+			continue
+		}
+		resumed, err := rd.startScenario(ctx, req, tour, current, path)
+		if err != nil || resumed != nil {
+			return resumed, err
+		}
+	}
 
 	for _, tour := range candidates {
 		if !tour.Enabled || tour.Status != TourPublished {
@@ -223,18 +236,7 @@ func (rd *RuntimeDomain) Resolve(
 			// Если пользователь проходит старую опубликованную версию,
 			// не перезаписываем её новой версией из /resolve.
 			// События MVP-06 сверяются с tour_progress.tour_version_id.
-			if current.Status == ProgressInProgress && current.TourVersionId != tour.VersionId {
-				continue
-			}
-
-			// Повторный resolve текущей активной версии:
-			// продолжить без нового показа и сброса шага.
-			if current.Status == ProgressInProgress && current.TourVersionId == tour.VersionId {
-				return rd.startScenario(ctx, req, tour, current)
-			}
-
-			// Завершённую или закрытую ту же версию заново не запускаем.
-			if current.TourVersionId == tour.VersionId {
+			if current.Status == ProgressInProgress || current.TourVersionId == tour.VersionId {
 				continue
 			}
 		}
@@ -256,6 +258,7 @@ func (rd *RuntimeDomain) Resolve(
 			req,
 			tour,
 			current,
+			path,
 		)
 	}
 
@@ -267,6 +270,7 @@ func (rd *RuntimeDomain) startScenario(
 	req ResolveRequest,
 	tour *Tour,
 	current *Progress,
+	path string,
 ) (*ResolveResult, error) {
 	hints, err := rd.hints.ListByVersion(
 		ctx,
@@ -276,11 +280,25 @@ func (rd *RuntimeDomain) startScenario(
 		return nil, err
 	}
 
+	newProgress := current == nil || current.TourVersionId != tour.VersionId
+	if !newProgress && !MatchPath(tour.TargetPath, path) {
+		var pagePath string
+		for _, hint := range hints {
+			if hint.PagePath != "" {
+				pagePath, _ = url.PathUnescape(hint.PagePath)
+			}
+			if current.CurrentHintId != nil && hint.Id == *current.CurrentHintId {
+				break
+			}
+		}
+		if !MatchPath(pagePath, path) {
+			return nil, nil
+		}
+	}
+
 	tour.Hints = hints
 	tour.StepsCount = len(hints)
-
 	now := time.Now().UTC()
-	newProgress := current == nil || current.TourVersionId != tour.VersionId
 
 	switch {
 	case current == nil:

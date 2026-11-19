@@ -40,6 +40,7 @@ type Hint struct {
 	Title         string
 	Content       string
 	Selector      string
+	PagePath      string
 	Placement     Placement
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
@@ -47,6 +48,7 @@ type Hint struct {
 
 type HintPatch struct {
 	Selector  *string
+	PagePath  *string
 	Title     *string
 	Content   *string
 	Placement *Placement

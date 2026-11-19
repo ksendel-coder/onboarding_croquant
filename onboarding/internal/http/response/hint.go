@@ -14,6 +14,7 @@ type Hint struct {
 	Title         string    `json:"title"`
 	Content       string    `json:"content"`
 	Selector      string    `json:"selector"`
+	PagePath      string    `json:"page_path,omitempty"`
 	Placement     string    `json:"placement"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
@@ -33,6 +34,7 @@ func NewHint(
 		Title:         h.Title,
 		Content:       h.Content,
 		Selector:      h.Selector,
+		PagePath:      h.PagePath,
 		Placement:     string(h.Placement),
 		CreatedAt:     h.CreatedAt,
 		UpdatedAt:     h.UpdatedAt,

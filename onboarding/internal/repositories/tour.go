@@ -121,13 +121,13 @@ func (tr *TourRepository) List(ctx context.Context, appId uuid.UUID) ([]*domains
                     OR d.audience_rules IS DISTINCT FROM p.audience_rules
                     OR (
                         SELECT COALESCE(
-                            jsonb_agg(jsonb_build_array(step, title, content, selector, placement) ORDER BY step),
+                            jsonb_agg(jsonb_build_array(step, title, content, selector, placement, page_path) ORDER BY step),
                             '[]'::jsonb
                         )
                         FROM hints WHERE tour_version_id = d.id
                     ) IS DISTINCT FROM (
                         SELECT COALESCE(
-                            jsonb_agg(jsonb_build_array(step, title, content, selector, placement) ORDER BY step),
+                            jsonb_agg(jsonb_build_array(step, title, content, selector, placement, page_path) ORDER BY step),
                             '[]'::jsonb
                         )
                         FROM hints WHERE tour_version_id = p.id
@@ -487,11 +487,11 @@ func (tr *TourRepository) Publish(ctx context.Context, tourId uuid.UUID) (*domai
                 AND d.trigger_config IS NOT DISTINCT FROM p.trigger_config
                 AND d.audience_rules IS NOT DISTINCT FROM p.audience_rules
                 AND (
-                    SELECT COALESCE(jsonb_agg(jsonb_build_array(step, title, content, selector, placement)
+                    SELECT COALESCE(jsonb_agg(jsonb_build_array(step, title, content, selector, placement, page_path)
                                               ORDER BY step), '[]'::jsonb)
                     FROM hints WHERE tour_version_id = d.id
                 ) = (
-                    SELECT COALESCE(jsonb_agg(jsonb_build_array(step, title, content, selector, placement)
+                    SELECT COALESCE(jsonb_agg(jsonb_build_array(step, title, content, selector, placement, page_path)
                                               ORDER BY step), '[]'::jsonb)
                     FROM hints WHERE tour_version_id = p.id
                 )
@@ -551,8 +551,8 @@ func (tr *TourRepository) Publish(ctx context.Context, tourId uuid.UUID) (*domai
 
 	// 8. Копируем hints. UUID и временные поля назначаются БД заново.
 	_, err = tx.Exec(ctx, `
-        INSERT INTO hints (tour_version_id, step, title, content, selector, placement)
-        SELECT $1, step, title, content, selector, placement
+        INSERT INTO hints (tour_version_id, step, title, content, selector, placement, page_path)
+        SELECT $1, step, title, content, selector, placement, page_path
         FROM hints
         WHERE tour_version_id = $2
         ORDER BY step`, newDraftId, draftId,
@@ -790,8 +790,8 @@ func (tr *TourRepository) RestoreVersion(
 	}
 
 	tag, err = tx.Exec(ctx, `
-        INSERT INTO hints (tour_version_id, step, title, content, selector, placement)
-        SELECT $1, step, title, content, selector, placement
+        INSERT INTO hints (tour_version_id, step, title, content, selector, placement, page_path)
+        SELECT $1, step, title, content, selector, placement, page_path
         FROM hints
         WHERE tour_version_id = $2
         ORDER BY step
@@ -883,7 +883,7 @@ func (tr *TourRepository) Preview(ctx context.Context, tourId uuid.UUID) (*domai
 
 	rows, err := tx.Query(ctx, `
 		SELECT id, tour_version_id, step, title, content,
-		       selector, placement, created_at, updated_at
+		       selector, page_path, placement, created_at, updated_at
 		FROM hints
 		WHERE tour_version_id = $1
 		ORDER BY step, id`, tour.VersionId,

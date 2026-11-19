@@ -147,14 +147,24 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	tourID = uuid.MustParse(stringField(decode(tourRes), "id"))
 
 	for _, step := range []int{1, 2} {
+		pagePath := ""
+		if step == 2 {
+			pagePath = "/mvp12/profile"
+		}
 		res := request(http.MethodPost, "/v1/tours/"+tourID.String()+"/hints", map[string]any{
 			"title": fmt.Sprintf("Step %d", step), "content": "Click next",
-			"selector": fmt.Sprintf("#step-%d", step), "placement": "bottom",
+			"selector": fmt.Sprintf("#step-%d", step), "placement": "bottom", "page_path": pagePath,
 		}, token, "", "")
 		expect(res, http.StatusCreated)
 	}
 	publish := request(http.MethodPost, "/v1/tours/"+tourID.String()+"/publish", nil, token, "", "")
 	expect(publish, http.StatusOK)
+	draftHints := request(http.MethodGet, "/v1/tours/"+tourID.String()+"/hints", nil, token, "", "")
+	expect(draftHints, http.StatusOK)
+	var draftSteps []map[string]any
+	require.NoError(t, json.Unmarshal(draftHints.Body.Bytes(), &draftSteps))
+	require.Len(t, draftSteps, 2)
+	require.Equal(t, "/mvp12/profile", draftSteps[1]["page_path"])
 
 	// 2. Runtime: authorization, Origin, matching and idempotent resolve.
 	resolvePath := "/v1/resolve"
@@ -175,6 +185,7 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	hints, ok := tourJSON["hints"].([]any)
 	require.True(t, ok)
 	require.Len(t, hints, 2)
+	require.Equal(t, "/mvp12/profile", hints[1].(map[string]any)["page_path"])
 	firstHint := uuid.MustParse(stringField(hints[0].(map[string]any), "id"))
 	secondHint := uuid.MustParse(stringField(hints[1].(map[string]any), "id"))
 	require.Equal(t, firstHint.String(), stringField(resolved, "current_hint_id"))
@@ -212,9 +223,15 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	resumed := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
 	expect(resumed, http.StatusOK)
 	require.Equal(t, attemptID.String(), stringField(decode(resumed), "attempt_id"))
+	destination := map[string]any{"url": origin + "/mvp12/profile", "subject_id": subject, "session_id": "destination"}
+	expect(request(http.MethodPost, resolvePath, destination, "", key, origin), http.StatusNoContent)
+	expect(request(http.MethodPost, eventsPath, event("hint_shown", &firstHint), "", key, origin), http.StatusAccepted)
+	expect(request(http.MethodPost, eventsPath, event("hint_completed", &firstHint), "", key, origin), http.StatusAccepted)
+	onDestination := request(http.MethodPost, resolvePath, destination, "", key, origin)
+	expect(onDestination, http.StatusOK)
+	require.Equal(t, secondHint.String(), stringField(decode(onDestination), "current_hint_id"))
+	require.Equal(t, attemptID.String(), stringField(decode(onDestination), "attempt_id"))
 	for _, body := range []map[string]any{
-		event("hint_shown", &firstHint),
-		event("hint_completed", &firstHint),
 		event("hint_shown", &secondHint),
 		event("hint_completed", &secondHint),
 		event("tour_completed", nil),
