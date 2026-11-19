@@ -305,3 +305,30 @@ func (ar *AuthRepository) UserHasTour(
 
 	return allowed, nil
 }
+
+func (ar *AuthRepository) UpdateNames(
+	ctx context.Context,
+	userId uuid.UUID,
+	firstName string,
+	lastName string,
+) (*domains.User, error) {
+	user := new(domains.User)
+	err := ar.pool.QueryRow(ctx, `
+        UPDATE users
+        SET first_name = $2, last_name = $3
+        WHERE id = $1
+        RETURNING id, first_name, last_name, email, password_hash, created_at`,
+		userId, firstName, lastName,
+	).Scan(
+		&user.Id,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.PasswordHash,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		return nil, wrap(err, domains.ErrUserNotFound, userId.String(), errs.Update)
+	}
+	return user, nil
+}

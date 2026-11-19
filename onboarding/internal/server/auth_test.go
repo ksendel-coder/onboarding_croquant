@@ -52,6 +52,14 @@ func (s *authNamesHTTPStub) Logout(_ context.Context, token string) error {
 	return nil
 }
 
+func (s *authNamesHTTPStub) UpdateNames(_ context.Context, id uuid.UUID, first, last string) (*domains.User, error) {
+	if id != s.user.Id {
+		return nil, domains.ErrUnauthorized
+	}
+	s.user.FirstName, s.user.LastName = first, last
+	return s.user, nil
+}
+
 func newAuthNamesTestServer(t *testing.T) (http.Handler, *authNamesHTTPStub) {
 	t.Helper()
 	gin.DefaultWriter = io.Discard
@@ -162,4 +170,28 @@ func TestAuthNamesLogoutHTTP(t *testing.T) {
 	rec := authNamesRequest(handler, http.MethodPost, "/v1/auth/logout", "", "valid-token")
 	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
 	require.Equal(t, "valid-token", auth.logoutToken)
+}
+
+func TestUpdateProfileNamesHTTP(t *testing.T) {
+	handler, auth := newAuthNamesTestServer(t)
+	body := `{"first_name":"Мария","last_name":"Петрова","user_id":"` + uuid.NewString() + `"}`
+	for _, token := range []string{"", "invalid-token"} {
+		rec := authNamesRequest(handler, http.MethodPatch, "/v1/auth/me", body, token)
+		require.Equal(t, http.StatusUnauthorized, rec.Code, rec.Body.String())
+	}
+	for _, invalid := range []string{`{}`, `{"first_name":"Мария"}`, `{"first_name":null,"last_name":"Петрова"}`} {
+		rec := authNamesRequest(handler, http.MethodPatch, "/v1/auth/me", invalid, "valid-token")
+		require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+	require.Equal(t, "Анна", auth.user.FirstName)
+	rec := authNamesRequest(handler, http.MethodPatch, "/v1/auth/me", body, "valid-token")
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var payload map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &payload))
+	require.Equal(t, auth.user.Id.String(), payload["id"])
+	require.Equal(t, "Мария", payload["first_name"])
+	require.Equal(t, "Петрова", payload["last_name"])
+	require.Equal(t, "anna@example.com", payload["email"])
+	require.NotContains(t, rec.Body.String(), "password_hash")
+	require.NotContains(t, payload, "token")
 }

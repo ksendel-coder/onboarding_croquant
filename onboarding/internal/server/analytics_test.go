@@ -42,6 +42,10 @@ func (a *analyticsAuthStub) UserHasTour(_ context.Context, _ uuid.UUID, _ uuid.U
 	return a.allowed, nil
 }
 
+func (a *analyticsAuthStub) UpdateNames(_ context.Context, _ uuid.UUID, _, _ string) (*domains.User, error) {
+	panic("unexpected UpdateNames call in analytics test")
+}
+
 type analyticsDomainStub struct {
 	called    int
 	tourId    uuid.UUID

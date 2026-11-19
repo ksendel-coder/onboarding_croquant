@@ -130,6 +130,31 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 		_, _ = pool.Exec(cleanup, "DELETE FROM users WHERE id=$1", userID)
 	})
 
+	profilePath := "/v1/auth/me"
+	profileBody := map[string]any{"first_name": "  Мария  ", "last_name": "Петрова"}
+	expect(request(http.MethodPatch, profilePath, profileBody, "", "", ""), http.StatusUnauthorized)
+	expect(request(http.MethodPatch, profilePath, map[string]any{"first_name": " ", "last_name": "Петрова"}, token, "", ""), http.StatusBadRequest)
+	profileRes := request(http.MethodPatch, profilePath, profileBody, token, "", "")
+	expect(profileRes, http.StatusOK)
+	profile := decode(profileRes)
+	require.Equal(t, userID.String(), profile["id"])
+	require.Equal(t, "Мария", profile["first_name"])
+	require.Equal(t, "Петрова", profile["last_name"])
+	require.Equal(t, email, profile["email"])
+	require.NotContains(t, profile, "password_hash")
+	var savedFirst, savedLast string
+	require.NoError(t, pool.QueryRow(ctx, `SELECT first_name, last_name FROM users WHERE id=$1`, userID).Scan(&savedFirst, &savedLast))
+	require.Equal(t, "Мария", savedFirst)
+	require.Equal(t, "Петрова", savedLast)
+	profileMe := request(http.MethodGet, profilePath, nil, token, "", "")
+	expect(profileMe, http.StatusOK)
+	require.Equal(t, profile, decode(profileMe))
+	profileLogin := request(http.MethodPost, "/v1/auth/login", map[string]any{
+		"email": email, "password": "Mvp12TestPassword!",
+	}, "", "", "")
+	expect(profileLogin, http.StatusOK)
+	require.Equal(t, profile, decode(profileLogin)["user"])
+
 	origin := "http://localhost:5173"
 	appRes := request(http.MethodPost, "/v1/apps", map[string]any{
 		"name": "mvp12-e2e-" + uuid.NewString(), "allowed_origins": []string{origin},
