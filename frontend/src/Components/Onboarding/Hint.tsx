@@ -1,6 +1,7 @@
 
-import { useEffect, useState, useRef } from "react";
-import type { Hint as HintType } from "../../Types";
+import { useEffect, useState, useRef, type CSSProperties } from "react";
+import { DEFAULT_APP_THEME, type AppTheme, type Hint as HintType } from "../../Types";
+import { getButtonTextColor } from "../../Utils/themeColor";
 import styles from "./Hint.module.scss";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
   onClose: () => void;
   busy: boolean;
   preview?: boolean;
+  theme?: AppTheme;
 }
 
 interface Position {
@@ -25,7 +27,7 @@ interface Highlight {
   height: number;
 }
 
-export function Hint({ hint, index, total, onNext, onClose, busy, preview = false }: Props) {
+export function Hint({ hint, index, total, onNext, onClose, busy, preview = false, theme = DEFAULT_APP_THEME }: Props) {
   const [position, setPosition] = useState<Position | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const onNextRef = useRef(onNext);
@@ -156,6 +158,14 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
 
   if (!position) return null;
 
+  const hintStyle = {
+    ...position,
+    "--hint-primary": theme.primary_color,
+    "--hint-background": theme.background_color,
+    "--hint-text": theme.text_color,
+    "--hint-button-text": getButtonTextColor(theme.primary_color),
+  } as CSSProperties;
+
   return (
     <>
       {preview && (
@@ -169,7 +179,7 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
         </>
       )}
 
-      <aside className={styles.hint} style={{top: position.top, left: position.left}}>
+      <aside className={styles.hint} style={hintStyle}>
         <button className={styles.hint__close} type="button" onClick={onClose} disabled={busy}>×</button>
         <div className={styles.hint__header}>
           <h3 className={styles.hint__header__title}>{hint.title}</h3>
