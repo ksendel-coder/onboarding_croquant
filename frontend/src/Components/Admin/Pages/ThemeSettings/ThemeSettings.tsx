@@ -94,6 +94,7 @@ function ThemeEditor({ app, appsKey, disabled }: {
           : [...old, updated],
       );
       setEdits(null);
+      await queryClient.invalidateQueries({ queryKey: ["tour-app-theme"] });
     },
   });
   const busy = disabled || saveMutation.isPending;
