@@ -1,5 +1,5 @@
 import { api } from "./api";
-import type { App, AppThemePatch, CreateHintRequest, CreateTourRequest, Hint, HintPatchRequest, TourAnalytics, TourListItem, TourPreviewResponse, TourVersionHistoryItem, UpdateTourMetaRequest } from "../Types";
+import type { App, AppThemePatch, CreateHintRequest, CreateTourRequest, Hint, HintPatchRequest, TourAnalytics, TourListItem, TourPreviewResponse, TourSettingsPatchRequest, TourVersionHistoryItem, UpdateTourMetaRequest } from "../Types";
 
 export const onboardingAPI = {
   getApps: () => api.get<App[]>("/apps").then((res) => res.data),
@@ -16,6 +16,9 @@ export const onboardingAPI = {
   getTours: (appId: string) => api.get<TourListItem[]>("/tours", { params: { appId } }).then((res) => res.data),
 
   updateTourMeta: (tourId: string, data: UpdateTourMetaRequest) => api.patch(`/tours/${tourId}`, data).then((res) => res.data),
+
+  updateTourSettings: (tourId: string, body: TourSettingsPatchRequest) =>
+    api.patch<void>(`/tours/${tourId}/settings`, body).then(() => undefined),
 
   deleteTour: (tourId: string) => api.delete(`/tours/${tourId}`),
 
