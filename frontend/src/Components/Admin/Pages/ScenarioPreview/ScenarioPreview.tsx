@@ -61,7 +61,7 @@ export function ScenarioPreview() {
         setIsFinished(true);
         return;
     }
-    setStepIndex((prev) => prev + 1);
+    setStepIndex(currentIndex + 1);
   };
 
   const handleSkip = () => { setIsFinished(true); };
@@ -139,6 +139,7 @@ export function ScenarioPreview() {
 
       {pageHtml !== null && currentHint && !isFinished && (
         <Hint key={currentHint.id} hint={currentHint} index={currentIndex} total={hints.length} onNext={handleNext}
+              onMissingTarget={handleNext}
               onClose={handleSkip} busy={false} preview theme={appThemeQuery.data ?? undefined}
         />
       )}

@@ -9,6 +9,7 @@ interface Props {
   index: number;
   total: number;
   onNext: () => void;
+  onMissingTarget?: () => void;
   onClose: () => void;
   busy: boolean;
   preview?: boolean;
@@ -27,12 +28,14 @@ interface Highlight {
   height: number;
 }
 
-export function Hint({ hint, index, total, onNext, onClose, busy, preview = false, theme = DEFAULT_APP_THEME }: Props) {
+export function Hint({ hint, index, total, onNext, onMissingTarget, onClose, busy, preview = false, theme = DEFAULT_APP_THEME }: Props) {
   const [position, setPosition] = useState<Position | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const onNextRef = useRef(onNext);
+  const onMissingTargetRef = useRef(onMissingTarget);
 
   useEffect(() => { onNextRef.current = onNext; }, [onNext]);
+  useEffect(() => { onMissingTargetRef.current = onMissingTarget; }, [onMissingTarget]);
 
   useEffect(() => {
     const update = () => {
@@ -47,23 +50,15 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
         element = null;
       }
 
-      const width = Math.min(358, window.innerWidth - 32);
-      const height = 200;
-
       if (!element) {
         setHighlight(null);
-
-        if (preview) {
-          setPosition({
-            left: Math.max(16, (window.innerWidth - width) / 2),
-            top: Math.max(16, (window.innerHeight - height) / 2),
-          });
-        } else {
-          setPosition(null);
-        }
+        setPosition(null);
+        if (preview) onMissingTargetRef.current?.();
         return;
       }
 
+      const width = Math.min(358, window.innerWidth - 32);
+      const height = 200;
       const rect = element.getBoundingClientRect();
 
       if (preview) setHighlight({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
@@ -168,15 +163,8 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
 
   return (
     <>
-      {preview && (
-        <>
-          {highlight ? (
-            <div
-              className={styles.spotlight}
-              style={{top: highlight.top, left: highlight.left, width: highlight.width, height: highlight.height}}
-            />
-          ) : (<div className={styles.backdrop} />)}
-        </>
+      {preview && highlight && (
+        <div className={styles.spotlight} style={highlight} />
       )}
 
       <aside className={styles.hint} style={hintStyle}>
@@ -186,10 +174,6 @@ export function Hint({ hint, index, total, onNext, onClose, busy, preview = fals
           <p className={styles.hint__header__count}>{index + 1}/{total}</p>
         </div>
         <p className={styles.hint__content}>{hint.content}</p>
-
-        {preview && !highlight && (
-          <p className={styles.hint__warning}>Элемент не найден: <code>{hint.selector}</code></p>
-        )}
 
         <button type="button" onClick={onNext} disabled={busy}>{index === total - 1 ? "Завершить" : "Далее"}</button>
       </aside>
