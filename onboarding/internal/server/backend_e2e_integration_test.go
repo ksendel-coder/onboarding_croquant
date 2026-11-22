@@ -270,12 +270,33 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	started := event("tour_started", nil)
 	expect(request(http.MethodPost, eventsPath, started, "", key, origin), http.StatusAccepted)
 	expect(request(http.MethodPost, eventsPath, started, "", key, origin), http.StatusOK)
+	// Тот же event_id с другим содержимым — ошибка, а не idempotent OK.
+	changed := make(map[string]any, len(started))
+	for k, v := range started {
+		changed[k] = v
+	}
+	changed["subject_id"] = "another-subject-" + uuid.NewString()
+	expect(request(http.MethodPost, eventsPath, changed, "", key, origin), http.StatusConflict)
+
+	changed = make(map[string]any, len(started))
+	for k, v := range started {
+		changed[k] = v
+	}
+	changed["type"] = "tour_dismissed"
+	expect(request(http.MethodPost, eventsPath, changed, "", key, origin), http.StatusConflict)
+
+	// Принимать события по публичному ключу можно, но без ключа — нельзя.
+	expect(request(http.MethodPost, eventsPath, event("hint_shown", &firstHint), "", "", origin),
+		http.StatusUnauthorized)
 	resolveBody["session_id"] = "reopened-tab"
 	resumed := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
 	expect(resumed, http.StatusOK)
 	require.Equal(t, attemptID.String(), stringField(decode(resumed), "attempt_id"))
 	destination := map[string]any{"url": origin + "/mvp12/profile", "subject_id": subject, "session_id": "destination"}
 	expect(request(http.MethodPost, resolvePath, destination, "", key, origin), http.StatusNoContent)
+	wrongAttempt := event("hint_shown", &firstHint)
+	wrongAttempt["attempt_id"] = uuid.New()
+	expect(request(http.MethodPost, eventsPath, wrongAttempt, "", key, origin), http.StatusConflict)
 	expect(request(http.MethodPost, eventsPath, event("hint_shown", &firstHint), "", key, origin), http.StatusAccepted)
 	expect(request(http.MethodPost, eventsPath, event("hint_completed", &firstHint), "", key, origin), http.StatusAccepted)
 	onDestination := request(http.MethodPost, resolvePath, destination, "", key, origin)
@@ -301,6 +322,7 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 
 	analyticsPath := "/v1/tours/" + tourID.String() + "/analytics?version_id=" + versionID.String()
 	expect(request(http.MethodGet, analyticsPath, nil, "", key, ""), http.StatusUnauthorized)
+	expect(request(http.MethodGet, analyticsPath, nil, "", "", ""), http.StatusUnauthorized)
 	analysis := request(http.MethodGet, analyticsPath, nil, token, "", "")
 	expect(analysis, http.StatusOK)
 	metrics := decode(analysis)
@@ -321,6 +343,13 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	skipped := event("hint_skipped", &firstHint)
 	recordSkipAttempt(skipped, http.StatusAccepted)
 	recordSkipAttempt(skipped, http.StatusOK)
+	var skippedStored int
+	require.NoError(t, pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM tour_events
+		WHERE app_id=$1 AND tour_id=$2 AND subject_id=$3 AND event_type='hint_skipped'`,
+		appID, tourID, skipSubject,
+	).Scan(&skippedStored))
+	require.Equal(t, 1, skippedStored, "repeated hint_skipped must not create duplicate rows")
 	skipResume := request(http.MethodPost, resolvePath, map[string]any{
 		"url": origin + "/mvp12", "subject_id": skipSubject, "session_id": "skip-resume",
 	}, "", key, origin)
