@@ -11,6 +11,7 @@ import { AuthProvider } from "../Components/Auth/AuthProvider";
 import { AuthPage } from "../Components/Auth/AuthPage";
 import { ProtectedRoute } from "../Components/Auth/ProtectedRoute";
 import { ScenarioPreview } from "../Components/Admin/Pages/ScenarioPreview/ScenarioPreview";
+import { ThemeSettings } from "../Components/Admin/Pages/ThemeSettings/ThemeSettings";
 
 import { WidgetTestLayout } from "../Components/WidgetTest/WidgetTestLayout";
 import { WidgetTestHome } from "../Components/WidgetTest/WidgetTestHome";
@@ -39,6 +40,7 @@ export default function App() {
                   <Route index element={<Navigate to="scenarios" replace />} />
                   <Route path="scenarios" element={<Scenarios />} />
                   <Route path="analytics" element={<Analytics />} />
+                  <Route path="theme" element={<ThemeSettings />} />
                 </Route>
                 <Route element={<AdminLayoutEmpty />}>
                   <Route path="scenarios/new" element={<ScenarioEditor />} />
