@@ -20,7 +20,6 @@ export function useScenario(
   const [editedScenario, setEditedScenario] = useState<{
     name: string;
     description: string;
-    targetPath: string;
     enabled: boolean;
     priority: number;
   } | null>(null);
@@ -52,7 +51,6 @@ export function useScenario(
   const scenario = editedScenario ?? {
     name: tourQuery.data?.title ?? "",
     description: tourQuery.data?.description ?? "",
-    targetPath: tourQuery.data?.target_path ?? "/",
     enabled: Boolean(tourQuery.data?.enabled),
     priority: tourQuery.data?.priority ?? 0,
   };
@@ -60,7 +58,7 @@ export function useScenario(
   const preview = settingsQuery.data;
   const settings: TourSettingsForm = editedSettings ?? {
     ...DEFAULT_TOUR_SETTINGS,
-    targetPath: editedScenario?.targetPath ?? preview?.tour.target_path ?? tourQuery.data?.target_path ?? "/",
+    targetPath: preview?.tour.target_path ?? tourQuery.data?.target_path ?? "/",
     triggerType: preview?.trigger_type ?? "on_load",
     delayMs: String(preview?.trigger_config?.delay_ms ?? 1000),
     scrollDepth: String(preview?.trigger_config?.scroll_depth ?? 50),
