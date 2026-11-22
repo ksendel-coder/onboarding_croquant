@@ -1,6 +1,30 @@
 const SUBJECT_KEY = "croquant_subject_id";
 const ATTEMPT_PREFIX = "croquant_attempt_";
 const TARGET_TIMEOUT_MS = 4_000;
+const DEFAULT_THEME = Object.freeze({
+  primary_color: "#696CF1",
+  background_color: "#FFFFFF",
+  text_color: "#181818",
+});
+
+function setWidgetTheme(host, theme) {
+  const colors = Object.fromEntries(
+    Object.entries(DEFAULT_THEME).map(([key, fallback]) => {
+      const value = theme?.[key];
+      return [key, typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toUpperCase() : fallback];
+    }),
+  );
+  const rgb = [1, 3, 5].map((index) => Number.parseInt(colors.primary_color.slice(index, index + 2), 16) / 255);
+  const [red, green, blue] = rgb.map((channel) =>
+    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+
+  host.style.setProperty("--croquant-primary", colors.primary_color);
+  host.style.setProperty("--croquant-background", colors.background_color);
+  host.style.setProperty("--croquant-text", colors.text_color);
+  host.style.setProperty("--croquant-button-text", luminance > 0.179 ? "#000000" : "#FFFFFF");
+}
 
 function getSubjectId() {
   let id = localStorage.getItem(SUBJECT_KEY);
@@ -107,7 +131,7 @@ const styles = `
     position: fixed;
     z-index: 10000;
     font: 16px system-ui, sans-serif;
-    color: #181818;
+    color: var(--croquant-text, #181818);
   }
 
   aside {
@@ -116,9 +140,10 @@ const styles = `
     max-height: calc(100vh - 32px);
     overflow: auto;
     padding: 24px;
-    border: 3px solid #696cf1;
+    border: 3px solid var(--croquant-primary, #696cf1);
     border-radius: 20px;
-    background: #fff;
+    background: var(--croquant-background, #fff);
+    color: var(--croquant-text, #181818);
     box-sizing: border-box;
     box-shadow: 0 4px 20px #17233b24;
   }
@@ -140,15 +165,15 @@ const styles = `
 
   h3, p { margin: 0; overflow-wrap: anywhere; }
   h3 { font-size: 22px; }
-  header span { color: #585bcc; white-space: nowrap; }
-  p { margin: 12px 0; color: #4b5563; }
+  header span { color: var(--croquant-primary, #696cf1); white-space: nowrap; }
+  p { margin: 12px 0; color: var(--croquant-text, #181818); }
 
   button {
     border: 0;
     border-radius: 8px;
     padding: 7px 14px;
-    background: #5054c9;
-    color: #fff;
+    background: var(--croquant-primary, #696cf1);
+    color: var(--croquant-button-text, #fff);
     font: inherit;
     cursor: pointer;
   }
@@ -166,7 +191,9 @@ const styles = `
   }
 
   .error { left: 16px; bottom: 16px; border-color: #fecaca; }
+  .error { background: #fff; }
   .error p { color: #991b1b; }
+  .error button { background: #5054c9; color: #fff; }
 `;
 
 function createElement(tag, text, className) {
@@ -428,6 +455,7 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
     if (!result) {
       result = await resolveTour(apiUrl, appKey, signal);
       signal.throwIfAborted();
+      if (result) setWidgetTheme(host, result.theme);
       hints = [...(result?.tour.hints ?? [])].sort((a, b) => a.step - b.step);
       if (!hints.length) {
         destroy();
