@@ -100,11 +100,6 @@ function ScenariosComponent() {
                 <span className={styles.page__table__row__status__dot} />
                   {isPublished ? "Опубликован" : "Черновик"}
                 </span>
-                {item.has_published && item.has_unpublished_changes && (
-                  <div className={styles.page__table__row__publicationNote}>
-                    Опубликованная версия активна
-                  </div>
-                )}
               </td>
 
               <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "—"}</td>
