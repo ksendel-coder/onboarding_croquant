@@ -191,6 +191,9 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 		}, token, "", "")
 		expect(res, http.StatusCreated)
 	}
+	expect(request(http.MethodPatch, "/v1/tours/"+tourID.String()+"/settings", map[string]any{
+		"trigger_type": "delay", "trigger_config": map[string]any{"delay_ms": 2000},
+	}, token, "", ""), http.StatusNoContent)
 	publish := request(http.MethodPost, "/v1/tours/"+tourID.String()+"/publish", nil, token, "", "")
 	expect(publish, http.StatusOK)
 	draftHints := request(http.MethodGet, "/v1/tours/"+tourID.String()+"/hints", nil, token, "", "")
@@ -209,7 +212,19 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	}
 	expect(request(http.MethodPost, resolvePath, resolveBody, "", "", origin), http.StatusUnauthorized)
 	expect(request(http.MethodPost, resolvePath, resolveBody, "", key, "https://untrusted.example"), http.StatusForbidden)
+	resolveBody["defer_start"] = true
+	resolveBody["start_version_id"] = uuid.New()
+	candidate := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
+	expect(candidate, http.StatusOK)
+	pending := decode(candidate)
+	require.Equal(t, true, pending["awaiting_trigger"])
+	require.NotContains(t, pending, "attempt_id")
+	var countBeforeTrigger int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM tour_progress WHERE app_id=$1 AND subject_id=$2", appID, subject).Scan(&countBeforeTrigger))
+	require.Zero(t, countBeforeTrigger)
+	resolveBody["start_version_id"] = pending["tour_version_id"]
 	first := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
+	delete(resolveBody, "start_version_id")
 	expect(first, http.StatusOK)
 	resolved := decode(first)
 	require.Equal(t, theme, resolved["theme"])
@@ -225,6 +240,7 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	secondHint := uuid.MustParse(stringField(hints[1].(map[string]any), "id"))
 	require.Equal(t, firstHint.String(), stringField(resolved, "current_hint_id"))
 	again := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
+	delete(resolveBody, "defer_start")
 	expect(again, http.StatusOK)
 	require.Equal(t, versionID.String(), stringField(decode(again), "tour_version_id"))
 	require.Equal(t, initialAttempt, stringField(decode(again), "attempt_id"))

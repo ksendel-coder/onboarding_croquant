@@ -6,10 +6,12 @@ import (
 )
 
 type ResolveRequest struct {
-	Url       string         `json:"url"`
-	SubjectId string         `json:"subject_id" binding:"required"`
-	SessionId string         `json:"session_id"`
-	Props     map[string]any `json:"props"`
+	DeferStart     bool           `json:"defer_start"`
+	StartVersionId *uuid.UUID     `json:"start_version_id"`
+	Url            string         `json:"url"`
+	SubjectId      string         `json:"subject_id" binding:"required"`
+	SessionId      string         `json:"session_id"`
+	Props          map[string]any `json:"props"`
 }
 
 type CreateAppRequest struct {
@@ -27,11 +29,13 @@ func (r *ResolveRequest) ToDomain(
 	appId uuid.UUID,
 ) domains.ResolveRequest {
 	return domains.ResolveRequest{
-		AppId:     appId,
-		Url:       r.Url,
-		SubjectId: r.SubjectId,
-		SessionId: r.SessionId,
-		Props:     r.Props,
+		DeferStart:     r.DeferStart,
+		StartVersionId: r.StartVersionId,
+		AppId:          appId,
+		Url:            r.Url,
+		SubjectId:      r.SubjectId,
+		SessionId:      r.SessionId,
+		Props:          r.Props,
 	}
 }
 

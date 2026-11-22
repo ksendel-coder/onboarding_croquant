@@ -62,7 +62,7 @@ function endpoint(apiUrl, path) {
   return `${apiUrl.replace(/\/$/, "")}/${path}`;
 }
 
-async function resolveTour(apiUrl, appKey, signal) {
+async function resolveTour(apiUrl, appKey, signal, startVersionId) {
   const response = await fetch(endpoint(apiUrl, "resolve"), {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-App-Key": appKey },
@@ -72,12 +72,93 @@ async function resolveTour(apiUrl, appKey, signal) {
       subject_id: getSubjectId(),
       session_id: getSessionId(),
       props: {},
+      defer_start: true,
+      start_version_id: startVersionId,
     }),
   });
 
   if (response.status === 204) return null;
   if (!response.ok) throw new Error(`Resolve failed: ${response.status}`);
   return response.json();
+}
+
+function waitForTrigger(tour, signal, registerManual) {
+  signal.throwIfAborted();
+  const config = tour.trigger_config ?? {};
+  return new Promise((resolve, reject) => {
+    const listeners = new AbortController();
+    const options = { passive: true, signal: listeners.signal };
+    let timer;
+    let observer;
+    function cleanup() {
+      clearTimeout(timer);
+      observer?.disconnect();
+      listeners.abort();
+      signal.removeEventListener("abort", abort);
+      registerManual(null);
+    }
+    function activate() {
+      cleanup();
+      resolve();
+    }
+    function abort() {
+      cleanup();
+      reject(signal.reason);
+    }
+    signal.addEventListener("abort", abort, { once: true });
+
+    switch (tour.trigger_type) {
+      case "delay":
+        timer = setTimeout(activate, config.delay_ms ?? 1000);
+        break;
+      case "scroll_depth": {
+        const check = () => {
+          const page = document.scrollingElement;
+          const maximum = page ? page.scrollHeight - page.clientHeight : 0;
+          const depth = maximum > 0 ? (page.scrollTop / maximum) * 100 : 0;
+          if (depth >= (config.scroll_depth ?? 50)) activate();
+        };
+        window.addEventListener("scroll", check, options);
+        window.addEventListener("resize", check, options);
+        check();
+        break;
+      }
+      case "inactivity": {
+        const reset = () => {
+          clearTimeout(timer);
+          if (!document.hidden) timer = setTimeout(activate, (config.inactivity_secs ?? 30) * 1000);
+        };
+        for (const event of ["pointermove", "pointerdown", "keydown", "scroll"]) {
+          window.addEventListener(event, reset, options);
+        }
+        document.addEventListener("visibilitychange", reset, options);
+        reset();
+        break;
+      }
+      case "exit_intent":
+        document.addEventListener("mouseout", (event) => {
+          if (!event.relatedTarget && event.clientY <= 0) activate();
+        }, options);
+        break;
+      case "manual":
+        registerManual(activate);
+        break;
+      case "element_visible": {
+        // Existing published versions can still contain the retired editor option.
+        const check = () => {
+          if (isInViewport(getTargetRect(findTarget(config.element_selector)))) activate();
+        };
+        observer = new MutationObserver(check);
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+        window.addEventListener("scroll", check, { ...options, capture: true });
+        window.addEventListener("resize", check, options);
+        check();
+        break;
+      }
+      default:
+        activate();
+    }
+  });
 }
 
 async function sendEvent(apiUrl, appKey, event, signal) {
@@ -285,6 +366,9 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
   document.body.append(host);
 
   let result;
+  let startVersionId;
+  let manualRequested = false;
+  let startManual;
   let hints = [];
   let index = 0;
   let busy = false;
@@ -453,8 +537,17 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
 
   async function load() {
     if (!result) {
-      result = await resolveTour(apiUrl, appKey, signal);
+      let resolved = await resolveTour(apiUrl, appKey, signal, startVersionId);
+      while (resolved?.awaiting_trigger) {
+        await waitForTrigger(resolved.tour, signal, (start) => {
+          startManual = start;
+          if (manualRequested && start) start();
+        });
+        startVersionId = resolved.tour_version_id;
+        resolved = await resolveTour(apiUrl, appKey, signal, startVersionId);
+      }
       signal.throwIfAborted();
+      result = resolved;
       if (result) setWidgetTheme(host, result.theme);
       hints = [...(result?.tour.hints ?? [])].sort((a, b) => a.step - b.step);
       if (!hints.length) {
@@ -474,5 +567,10 @@ export function mountOnboardingWidget({ appKey, apiUrl }) {
   }
 
   void run(load, "Не удалось загрузить сценарий.");
+  destroy.start = () => {
+    if (signal.aborted) return;
+    manualRequested = true;
+    startManual?.();
+  };
   return destroy;
 }

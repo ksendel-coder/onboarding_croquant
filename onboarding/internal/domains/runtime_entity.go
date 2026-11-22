@@ -39,17 +39,20 @@ type Progress struct {
 }
 
 type ResolveRequest struct {
-	AppId     uuid.UUID
-	Url       string
-	SubjectId string
-	SessionId string
-	Props     map[string]any
+	DeferStart     bool
+	StartVersionId *uuid.UUID
+	AppId          uuid.UUID
+	Url            string
+	SubjectId      string
+	SessionId      string
+	Props          map[string]any
 }
 
 type ResolveResult struct {
-	Tour          *Tour
-	TourVersionId uuid.UUID
-	Version       int
-	CurrentHintId *uuid.UUID
-	AttemptId     *uuid.UUID
+	AwaitingTrigger bool
+	Tour            *Tour
+	TourVersionId   uuid.UUID
+	Version         int
+	CurrentHintId   *uuid.UUID
+	AttemptId       *uuid.UUID
 }

@@ -11,7 +11,7 @@ import { SortableStep } from "./SortableStep";
 
 type Editor = ReturnType<typeof useScenarioEditor>;
 
-export function ScenarioSteps({ editor }: { editor: Editor }) {
+export function ScenarioSteps({ editor, targetPath }: { editor: Editor; targetPath: string }) {
   const { isNew, draftHints, hints, busy, draftLocked, moveHint, editDraftHint, removeDraftHint, editHint, removeHint,
           editingDraftIndex, editingHintId, stepsCount, stepForm, setStepForm, submitHint, saveHint, stepErrors, setStepErrors,
           reorderHints, isPicking, pick, setIsPicking } = editor;
@@ -201,7 +201,7 @@ export function ScenarioSteps({ editor }: { editor: Editor }) {
               </button>
             </form>
           </section>
-          <DomPicker active={isPicking} onSelect={pick} onCancel={() => setIsPicking(false)} />
+          <DomPicker active={isPicking} pagePath={stepForm.page_path?.trim() || targetPath} onSelect={pick} onCancel={() => setIsPicking(false)} />
         </div>
   );
 }

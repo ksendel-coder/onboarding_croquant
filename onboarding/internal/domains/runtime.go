@@ -262,6 +262,16 @@ func (rd *RuntimeDomain) Resolve(
 			}
 		}
 
+		if req.DeferStart && tour.TriggerType != "" && tour.TriggerType != TriggerOnLoad &&
+			(req.StartVersionId == nil || *req.StartVersionId != tour.VersionId) {
+			return &ResolveResult{
+				AwaitingTrigger: true,
+				Tour:            tour,
+				TourVersionId:   tour.VersionId,
+				Version:         tour.Version,
+			}, nil
+		}
+
 		return rd.startScenario(
 			ctx,
 			req,
