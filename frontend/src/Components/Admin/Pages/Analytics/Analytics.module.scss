@@ -51,8 +51,7 @@
         color: #64748b;
         font-weight: 600;
 
-        &[data-direction="up"] { color: #00a36e; }
-        &[data-direction="down"] { color: #a33a43; }
+        &[data-percent="true"] { color: #00a36e; }
       }
     }
 
