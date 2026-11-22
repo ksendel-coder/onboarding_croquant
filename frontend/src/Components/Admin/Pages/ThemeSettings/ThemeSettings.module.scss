@@ -4,7 +4,6 @@
   color: #202c46;
   background: #fff;
   border-radius: 20px;
-  box-shadow: 0 3px 18px #142a4612;
 
   summary { cursor: pointer; font-size: 22px; font-weight: 700; }
   h2 { font-size: 21px; margin: 0 0 20px; }
@@ -13,10 +12,7 @@
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
 .panel {
   min-width: 0;
-  background: #fff;
-  border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 3px 18px #142a4612;
 }
 .field { display: grid; gap: 6px; margin: 0 0 18px; }
 .field label { font-weight: 650; }
@@ -50,7 +46,7 @@
 }
 .actions button:last-child { background: #5054c9; color: #fff; }
 .actions button:disabled { opacity: .55; cursor: not-allowed; }
-.note { font-size: 13px; color: #64748b; line-height: 1.5; }
+.note { margin-top: 16px; font-size: 13px; color: #64748b; line-height: 1.5; }
 .error { color: #b91c1c !important; }
 .success { color: #047857; }
 .previewStage {
@@ -58,8 +54,6 @@
   place-items: center;
   min-height: 270px;
   padding: 18px;
-  background: #d4d9e2;
-  border-radius: 14px;
 }
 .hint {
   box-sizing: border-box;
@@ -67,7 +61,6 @@
   padding: 24px;
   border: 3px solid;
   border-radius: 20px;
-  box-shadow: 0 4px 20px #17233b24;
 }
 .hintHeader { display: flex; justify-content: space-between; gap: 12px; }
 .hint p { margin: 16px 0; color: inherit; }

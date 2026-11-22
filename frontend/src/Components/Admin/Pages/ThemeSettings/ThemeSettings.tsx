@@ -105,7 +105,7 @@ function ThemeEditor({ app, appsKey, disabled }: {
 
   return (
     <>
-      <p>{app ? `Палитра общая для всех сценариев приложения «${app.name}».` : "Палитра будет общей для всех сценариев нового приложения."}</p>
+      <p>Палитра общая для всех сценариев приложения.</p>
 
       <section className={styles.layout}>
         <div className={styles.panel}>
@@ -157,7 +157,6 @@ function ThemeEditor({ app, appsKey, disabled }: {
 
         <div className={styles.panel}>
           <h2>Предпросмотр</h2>
-          <p>Изменения видны до сохранения.</p>
           <div className={styles.previewStage}>
             <article className={styles.hint} style={{
               backgroundColor: previewColor("background_color"),
