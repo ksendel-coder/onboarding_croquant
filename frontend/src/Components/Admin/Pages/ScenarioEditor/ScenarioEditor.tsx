@@ -51,7 +51,7 @@ function ScenarioEditorComponent() {
       {saveError && <p role="alert">{saveError}</p>}
       <section className={styles.block}>
         <ScenarioSettings editor={editor} />
-        <ScenarioSteps editor={editor} />
+        <ScenarioSteps editor={editor} targetPath={editor.settings.targetPath} />
       </section>
       <ThemeSettings key={editor.tourId ?? "new"} appId={tourQuery.data?.app_id} disabled={busy} />
     </main>

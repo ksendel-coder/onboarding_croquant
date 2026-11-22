@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { onboardingAPI } from "../Api/onboarding";
-import { getCurrentApp, getOrCreateCurrentApp } from "../Api/helpers/helpers";
+import { getOrCreateCurrentApp } from "../Api/helpers/helpers";
 import {
   DEFAULT_TOUR_SETTINGS,
   validateAndSerializeTourSettings,
@@ -33,10 +33,13 @@ export function useScenario(
     queryKey: ["scenario-edit-tour", tourId],
     enabled: !isNew,
     queryFn: async () => {
-      const app = await getCurrentApp();
-      if (!app) return null;
-      const tours = await onboardingAPI.getTours(app.id);
-      return tours.find((tour) => tour.id === tourId) ?? null;
+      const apps = await onboardingAPI.getApps();
+      for (const app of apps) {
+        const tours = await onboardingAPI.getTours(app.id);
+        const tour = tours?.find((item) => item.id === tourId);
+        if (tour) return tour;
+      }
+      return null;
     },
   });
 
@@ -60,7 +63,7 @@ export function useScenario(
     ...DEFAULT_TOUR_SETTINGS,
     targetPath: preview?.tour.target_path ?? tourQuery.data?.target_path ?? "/",
     triggerType: preview?.trigger_type === "element_visible" ? "on_load" : preview?.trigger_type ?? "on_load",
-    delayMs: String(preview?.trigger_config?.delay_ms ?? 1000),
+    delaySecs: String((preview?.trigger_config?.delay_ms ?? 1000) / 1000),
     scrollDepth: String(preview?.trigger_config?.scroll_depth ?? 50),
     inactivitySecs: String(preview?.trigger_config?.inactivity_secs ?? 30),
     showOnce: preview?.audience?.show_once ?? true,

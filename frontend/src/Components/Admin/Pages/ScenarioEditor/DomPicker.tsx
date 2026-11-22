@@ -1,15 +1,18 @@
 import { useEffect, useRef } from "react";
 import { selectorForElement } from "../../../../Utils/domSelector";
+import { widgetTestPreviewPath } from "../../../WidgetTest/previewPath";
 import styles from "./DomPicker.module.scss";
 
 interface DomPickerProps {
   active: boolean;
+  pagePath: string;
   onSelect: (selector: string) => void;
   onCancel: () => void;
 }
 
-export function DomPicker({ active, onSelect, onCancel }: DomPickerProps) {
+export function DomPicker({ active, pagePath, onSelect, onCancel }: DomPickerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const testPath = widgetTestPreviewPath(pagePath);
 
   useEffect(() => {
     if (!active) return;
@@ -85,7 +88,7 @@ export function DomPicker({ active, onSelect, onCancel }: DomPickerProps) {
       iframe.removeEventListener("load", install);
       cleanup();
     };
-  }, [active, onSelect]);
+  }, [active, onSelect, testPath]);
 
   if (!active) return null;
 
@@ -99,7 +102,11 @@ export function DomPicker({ active, onSelect, onCancel }: DomPickerProps) {
           </div>
           <button type="button" onClick={onCancel}>✕</button>
         </div>
-        <iframe ref={iframeRef} src="/picker-preview.html" title="Выбор DOM-элемента" className={styles.overlay__preview}/>
+        {testPath ? (
+          <iframe ref={iframeRef} src={`${testPath}?dom-picker`} title="Выбор DOM-элемента" className={styles.overlay__preview} />
+        ) : (
+          <p role="status">Страница {pagePath} недоступна на тестовом сайте. Укажите CSS-селектор вручную.</p>
+        )}
       </div>
     </div>
   );

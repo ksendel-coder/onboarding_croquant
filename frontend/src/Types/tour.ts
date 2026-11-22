@@ -79,7 +79,7 @@ export interface TourSettingsPatchRequest {
 export interface TourSettingsForm {
   targetPath: string;
   triggerType: Exclude<TourTriggerType, "element_visible">;
-  delayMs: string;
+  delaySecs: string;
   scrollDepth: string;
   inactivitySecs: string;
   showOnce: boolean;
@@ -90,7 +90,7 @@ export interface TourSettingsForm {
 export const DEFAULT_TOUR_SETTINGS: TourSettingsForm = {
   targetPath: "/",
   triggerType: "on_load",
-  delayMs: "1000",
+  delaySecs: "1",
   scrollDepth: "50",
   inactivitySecs: "30",
   showOnce: true,
@@ -117,7 +117,11 @@ export function validateAndSerializeTourSettings(
 
   const config: TourTriggerConfig = {};
   if (form.triggerType === "delay") {
-    config.delay_ms = toInteger(form.delayMs, "Задержка", 0, 600000);
+    const delay = form.delaySecs.trim().replace(",", ".");
+    if (!/^(?:\d+(?:\.\d{1,3})?|\.\d{1,3})$/.test(delay) || Number(delay) > 600) {
+      throw new Error("Задержка: укажите от 0 до 600 секунд, до трёх знаков после запятой");
+    }
+    config.delay_ms = Math.round(Number(delay) * 1000);
   }
   if (form.triggerType === "scroll_depth") {
     config.scroll_depth = toInteger(form.scrollDepth, "Прокрутка", 0, 100);

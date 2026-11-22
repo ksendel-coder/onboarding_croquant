@@ -73,10 +73,10 @@ export function ScenarioSettings({ editor }: { editor: Editor }) {
 
         {settings.triggerType === "delay" && (
           <label>
-            Задержка, мс (0–600000)
-            <input type="number" min="0" max="600000"
-              value={settings.delayMs}
-              onChange={(e) => change("delayMs", e.target.value)} />
+            Задержка, сек. (0–600)
+            <input type="number" min="0" max="600" step="0.001"
+              value={settings.delaySecs}
+              onChange={(e) => change("delaySecs", e.target.value)} />
           </label>
         )}
         {settings.triggerType === "scroll_depth" && (

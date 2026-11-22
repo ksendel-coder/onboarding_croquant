@@ -3,23 +3,12 @@
   width: 100%;
   background: #ffffff;
 
-  &__content {
-    padding: 32px;
-    font-family: Arial, sans-serif;
-
-    :global(.panel) {
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-    }
-
-    button {
-      padding: 12px 20px;
-      cursor: pointer;
-    }
+  &__scrollSpace {
+    min-height: 180vh;
   }
 
-  &__back {
+  &__back,
+  &__start {
     position: fixed;
     top: 30px;
     right: 32px;
@@ -37,5 +26,9 @@
     &:hover {
       background: #334155;
     }
+  }
+
+  &__start {
+    top: 80px;
   }
 }

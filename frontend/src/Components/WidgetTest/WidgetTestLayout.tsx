@@ -4,11 +4,12 @@ import { API_URL, ONBOARDING_APP_KEY } from "../../Config/env";
 import styles from "./WidgetTest.module.scss";
 
 export function WidgetTestLayout() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const picking = new URLSearchParams(search).has("dom-picker");
   const start = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
-    if (!ONBOARDING_APP_KEY) return;
+    if (picking || !ONBOARDING_APP_KEY) return;
 
     let active = true;
     let destroy: (() => void) | undefined;
@@ -31,7 +32,7 @@ export function WidgetTestLayout() {
       start.current = undefined;
       destroy?.();
     };
-  }, [pathname]);
+  }, [pathname, picking]);
 
   return (
     <div className={styles.site}>
@@ -41,14 +42,14 @@ export function WidgetTestLayout() {
           <NavLink to="/widget-test" end>Главная</NavLink>
           <NavLink to="/widget-test/profile">Профиль</NavLink>
         </nav>
-        {ONBOARDING_APP_KEY && (
+        {!picking && ONBOARDING_APP_KEY && (
           <button type="button" onClick={() => start.current?.()}>Запустить онбординг</button>
         )}
       </header>
 
       <Outlet />
 
-      {!ONBOARDING_APP_KEY && (
+      {!picking && !ONBOARDING_APP_KEY && (
         <p className={styles.error} role="alert">
           Задай VITE_ONBOARDING_APP_KEY в frontend/.env.local
         </p>

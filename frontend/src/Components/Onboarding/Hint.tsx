@@ -38,6 +38,8 @@ export function Hint({ hint, index, total, onNext, onMissingTarget, onClose, bus
   useEffect(() => { onMissingTargetRef.current = onMissingTarget; }, [onMissingTarget]);
 
   useEffect(() => {
+    let scrolledTarget: Element | null = null;
+
     const update = () => {
       let element: Element | null = null;
 
@@ -59,6 +61,10 @@ export function Hint({ hint, index, total, onNext, onMissingTarget, onClose, bus
 
       const width = Math.min(358, window.innerWidth - 32);
       const height = 200;
+      if (preview && element !== scrolledTarget) {
+        scrolledTarget = element;
+        element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+      }
       const rect = element.getBoundingClientRect();
 
       if (preview) setHighlight({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
