@@ -15,6 +15,18 @@ function ScenarioEditorComponent() {
 
   if (!isNew && (tourQuery.isLoading || hintsQuery.isLoading)) return <p>Загрузка сценария...</p>;
   if (!isNew && (tourQuery.isError || hintsQuery.isError || !tourQuery.data)) return <p>Не удалось загрузить сценарий.</p>;
+  if (!isNew && editor.settingsQuery.isLoading) return <p role="status">Загрузка настроек сценария…</p>;
+  if (!isNew && editor.settingsQuery.isError) {
+    return (
+      <main className={styles.page}>
+        <button className={styles.back} type="button" onClick={() => navigate("/admin/scenarios")}>
+          ← Назад к сценариям
+        </button>
+        <p role="alert">Не удалось загрузить настройки черновика.</p>
+        <button type="button" onClick={() => void editor.settingsQuery.refetch()}>Повторить</button>
+      </main>
+    );
+  }
 
   return (
     <main className={styles.page}>

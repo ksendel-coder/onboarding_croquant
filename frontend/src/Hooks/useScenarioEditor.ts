@@ -7,6 +7,10 @@ export function useScenarioEditor() {
   const steps = useScenarioSteps(tourId);
   const scenarioData = useScenario(tourId, steps.uploadDraftHints);
 
-  return { ...steps, ...scenarioData, busy: steps.busy || scenarioData.saveScenario.isPending 
-                                                       || scenarioData.publishScenario.isPending };
+  return {
+    ...steps,
+    ...scenarioData,
+    busy: steps.busy || scenarioData.saveScenario.isPending ||
+      scenarioData.publishScenario.isPending || scenarioData.settingsQuery.isLoading,
+  };
 }
