@@ -2,6 +2,7 @@ package domains
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -29,13 +30,15 @@ type TourEvent struct {
 }
 
 type StepAnalytics struct {
-	HintId    uuid.UUID `json:"hint_id"`
-	Step      int       `json:"step"`
-	Title     string    `json:"title"`
-	Shown     int       `json:"shown"`
-	Completed int       `json:"completed"`
-	Skipped   int       `json:"skipped"`
-	DropOff   int       `json:"drop_off"`
+	HintId        uuid.UUID  `json:"hint_id"`
+	Step          int        `json:"step"`
+	Title         string     `json:"title"`
+	Shown         int        `json:"shown"`
+	Completed     int        `json:"completed"`
+	Skipped       int        `json:"skipped"`
+	DropOff       int        `json:"drop_off"`
+	NotCompleted  int        `json:"not_completed"`
+	LastSkippedAt *time.Time `json:"last_skipped_at,omitempty"`
 }
 
 type AnalyticsPeriod struct {

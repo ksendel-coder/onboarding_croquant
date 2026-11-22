@@ -2,6 +2,7 @@ export interface TourVersionHistoryItem {
   id: string;
   version: number;
   status: "draft" | "published" | "archived";
+  published_at?: string | null;
 }
 
 export interface StepAnalytics {
@@ -12,6 +13,8 @@ export interface StepAnalytics {
   completed: number;
   skipped: number;
   drop_off: number;
+  not_completed?: number;
+  last_skipped_at?: string;
 }
 export interface AnalyticsPeriod {
   started: number;

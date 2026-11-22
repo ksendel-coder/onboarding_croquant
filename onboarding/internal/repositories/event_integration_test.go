@@ -250,7 +250,7 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 	assert.Equal(t, domains.AnalyticsPeriod{Started: 1, Dismissed: 1}, analytics.Previous)
 	require.Len(t, analytics.Steps, 2)
 	assert.Equal(t, domains.StepAnalytics{
-		HintId: firstHintId, Step: 1, Title: "First", Shown: 2, Completed: 1, DropOff: 1,
+		HintId: firstHintId, Step: 1, Title: "First", Shown: 2, Completed: 1, DropOff: 1, NotCompleted: 1,
 	}, analytics.Steps[0])
 	assert.Equal(t, domains.StepAnalytics{
 		HintId: secondHintId, Step: 2, Title: "Second", Shown: 1, Completed: 1, DropOff: 0,

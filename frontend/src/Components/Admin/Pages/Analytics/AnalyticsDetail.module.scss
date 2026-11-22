@@ -136,7 +136,7 @@
 
     &__stepRow {
       display: grid;
-      grid-template-columns: minmax(180px, 2fr) repeat(4, minmax(0, 1fr));
+      grid-template-columns: minmax(180px, 2.6fr) repeat(4, minmax(0, 1fr));
       align-items: center;
       gap: 14px;
       padding: 20px;
@@ -242,14 +242,14 @@
 
     &__issueRow {
       display: grid;
-      grid-template-columns: 54px minmax(0, 2fr) minmax(100px, 1fr);
+      grid-template-columns: 54px minmax(0, 2fr) repeat(2, minmax(100px, 1fr));
       gap: 16px;
       align-items: center;
       border: 1px solid #e8ebf1;
       border-radius: 12px;
       padding: 17px 20px;
 
-      @media (max-width: 540px) {
+      @media (max-width: 700px) {
         grid-template-columns: 54px minmax(0, 1fr);
       }
     }
