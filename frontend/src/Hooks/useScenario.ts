@@ -59,11 +59,10 @@ export function useScenario(
   const settings: TourSettingsForm = editedSettings ?? {
     ...DEFAULT_TOUR_SETTINGS,
     targetPath: preview?.tour.target_path ?? tourQuery.data?.target_path ?? "/",
-    triggerType: preview?.trigger_type ?? "on_load",
+    triggerType: preview?.trigger_type === "element_visible" ? "on_load" : preview?.trigger_type ?? "on_load",
     delayMs: String(preview?.trigger_config?.delay_ms ?? 1000),
     scrollDepth: String(preview?.trigger_config?.scroll_depth ?? 50),
     inactivitySecs: String(preview?.trigger_config?.inactivity_secs ?? 30),
-    elementSelector: preview?.trigger_config?.element_selector ?? "",
     showOnce: preview?.audience?.show_once ?? true,
     maxShows: String(preview?.audience?.max_shows ?? 0),
     onlyNew: preview?.audience?.only_new ?? false,

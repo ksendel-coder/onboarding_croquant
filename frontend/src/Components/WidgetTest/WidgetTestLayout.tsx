@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { API_URL, ONBOARDING_APP_KEY } from "../../Config/env";
 import styles from "./WidgetTest.module.scss";
 
 export function WidgetTestLayout() {
   const { pathname } = useLocation();
+  const start = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
     if (!ONBOARDING_APP_KEY) return;
@@ -15,7 +16,11 @@ export function WidgetTestLayout() {
     const scriptUrl = new URL(`${import.meta.env.BASE_URL}onboarding-widget.js`, document.baseURI).href;
     void import(/* @vite-ignore */ scriptUrl)
       .then(({ mountOnboardingWidget }) => {
-        if (active) destroy = mountOnboardingWidget({ appKey: ONBOARDING_APP_KEY, apiUrl: API_URL });
+        if (active) {
+          const widget = mountOnboardingWidget({ appKey: ONBOARDING_APP_KEY, apiUrl: API_URL });
+          destroy = widget;
+          start.current = widget.start;
+        }
       })
       .catch((error: unknown) => {
         if (active) console.error("Не удалось подключить виджет онбординга.", error);
@@ -23,6 +28,7 @@ export function WidgetTestLayout() {
 
     return () => {
       active = false;
+      start.current = undefined;
       destroy?.();
     };
   }, [pathname]);
@@ -35,6 +41,9 @@ export function WidgetTestLayout() {
           <NavLink to="/widget-test" end>Главная</NavLink>
           <NavLink to="/widget-test/profile">Профиль</NavLink>
         </nav>
+        {ONBOARDING_APP_KEY && (
+          <button type="button" onClick={() => start.current?.()}>Запустить онбординг</button>
+        )}
       </header>
 
       <Outlet />

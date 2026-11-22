@@ -78,11 +78,10 @@ export interface TourSettingsPatchRequest {
 
 export interface TourSettingsForm {
   targetPath: string;
-  triggerType: TourTriggerType;
+  triggerType: Exclude<TourTriggerType, "element_visible">;
   delayMs: string;
   scrollDepth: string;
   inactivitySecs: string;
-  elementSelector: string;
   showOnce: boolean;
   maxShows: string;
   onlyNew: boolean;
@@ -94,7 +93,6 @@ export const DEFAULT_TOUR_SETTINGS: TourSettingsForm = {
   delayMs: "1000",
   scrollDepth: "50",
   inactivitySecs: "30",
-  elementSelector: "",
   showOnce: true,
   maxShows: "0",
   onlyNew: false,
@@ -127,17 +125,6 @@ export function validateAndSerializeTourSettings(
   if (form.triggerType === "inactivity") {
     config.inactivity_secs = toInteger(form.inactivitySecs, "Бездействие", 0, 86400);
   }
-  if (form.triggerType === "element_visible") {
-    const selector = form.elementSelector.trim();
-    if (!selector) throw new Error("Укажите CSS-селектор элемента запуска");
-    try {
-      document.querySelector(selector);
-    } catch {
-      throw new Error("Неверный CSS-селектор элемента запуска");
-    }
-    config.element_selector = selector;
-  }
-
   return {
     target_path: path,
     trigger_type: form.triggerType,
