@@ -229,6 +229,10 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 	recordCreated(newEvent(subjectTwo, attemptTwo, domains.EventTourStarted, nil))
 	recordCreated(newEvent(subjectTwo, attemptTwo, domains.EventHintShown, &firstHintId))
 	recordCreated(newEvent(subjectTwo, attemptTwo, domains.EventTourDismissed, nil))
+	_, err = pool.Exec(ctx, `
+		UPDATE tour_events SET received_at = NOW() - INTERVAL '8 days'
+		WHERE app_id = $1 AND attempt_id = $2 AND event_type = 'tour_started'`, appId, attemptTwo)
+	require.NoError(t, err)
 
 	analytics, err := repo.Analytics(ctx, tourId, versionId)
 	require.NoError(t, err)
@@ -242,12 +246,14 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 	assert.Equal(t, 1, analytics.Completed)
 	assert.Equal(t, 1, analytics.Dismissed)
 	assert.Equal(t, 50.0, analytics.CompletionRate)
+	assert.Equal(t, domains.AnalyticsPeriod{Started: 1, Completed: 1}, analytics.Recent)
+	assert.Equal(t, domains.AnalyticsPeriod{Started: 1, Dismissed: 1}, analytics.Previous)
 	require.Len(t, analytics.Steps, 2)
 	assert.Equal(t, domains.StepAnalytics{
-		HintId: firstHintId, Step: 1, Shown: 2, Completed: 1, DropOff: 1,
+		HintId: firstHintId, Step: 1, Title: "First", Shown: 2, Completed: 1, DropOff: 1, NotCompleted: 1,
 	}, analytics.Steps[0])
 	assert.Equal(t, domains.StepAnalytics{
-		HintId: secondHintId, Step: 2, Shown: 1, Completed: 1, DropOff: 0,
+		HintId: secondHintId, Step: 2, Title: "Second", Shown: 1, Completed: 1, DropOff: 0,
 	}, analytics.Steps[1])
 
 	invalidHintEvent := newEvent(subjectTwo, uuid.New(), domains.EventHintShown, &foreignHintId)

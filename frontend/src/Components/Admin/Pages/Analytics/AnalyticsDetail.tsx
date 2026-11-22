@@ -1,9 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { ArrowLeft, CircleAlert, FileText } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { publishedTourAnalyticsQuery } from "../../../../Hooks/publishedTourAnalyticsQuery";
 import { useToursQuery } from "../../../../Hooks/useToursQuery";
 import styles from "./AnalyticsDetail.module.scss";
+
+function percent(count: number, total: number) {
+  return total > 0 ? `${Math.round((count / total) * 100)}%` : "0%";
+}
+
+const date = new Intl.DateTimeFormat("ru-RU");
+const dateTime = new Intl.DateTimeFormat("ru-RU", { dateStyle: "short", timeStyle: "short" });
+
+function StepMetric({ label, count, total, positive }: { label: string; count: number; total: number; positive?: boolean }) {
+  const badge = count === 0 ? styles.panel__steps__stat__neutral
+    : positive ? styles.panel__steps__stat__good : styles.panel__steps__stat__bad;
+  return (
+    <div className={styles.panel__steps__stat}>
+      <span>{label}</span>
+      <strong>{count} <small className={badge}>{percent(count, total)}</small></strong>
+    </div>
+  );
+}
 
 export function AnalyticsDetail() {
   const { tourId } = useParams<{ tourId: string }>();
@@ -13,10 +31,15 @@ export function AnalyticsDetail() {
     ...publishedTourAnalyticsQuery(tourId ?? ""),
     enabled: Boolean(tour),
   });
+  const analytics = report.data?.analytics;
+  const skippedSteps = analytics?.steps.filter((step) => step.skipped > 0) ?? [];
 
   return (
     <main className={styles.page}>
-      <Link to="/admin/analytics">Вернуться к аналитике</Link>
+      <Link className={styles.page__back} to="/admin/analytics">
+        <ArrowLeft size={18} aria-hidden="true" />
+        Вернуться к аналитике
+      </Link>
 
       {tours.isPending || (tour && report.isPending) ? (
         <p role="status">Загрузка аналитики…</p>
@@ -24,44 +47,76 @@ export function AnalyticsDetail() {
         <p role="alert">Не удалось загрузить аналитику.</p>
       ) : !tour ? (
         <p>Сценарий не найден.</p>
-      ) : !report.data ? (
+      ) : !report.data || !analytics ? (
         <p>У сценария пока нет опубликованной версии.</p>
       ) : (
-        <section className={styles.panel}>
-          <header className={styles.panel__top}>
-            <div className={styles.panel__tourHeading}>
-              <span className={styles.panel__tourHeading__documentIcon} aria-hidden="true"><FileText size={28} /></span>
-              <div>
-                <h1>{tour.title}</h1>
-                <p>Версия {report.data.version.version}</p>
+        <>
+          <section className={styles.panel}>
+            <header className={styles.panel__top}>
+              <div className={styles.panel__tourHeading}>
+                <span className={styles.panel__tourHeading__documentIcon} aria-hidden="true"><FileText size={28} /></span>
+                <div>
+                  <h1>{tour.title}</h1>
+                  <p>
+                    Версия {report.data.version.version}
+                    {report.data.version.published_at && (
+                      <> · {date.format(new Date(report.data.version.published_at))} — {date.format(new Date())}</>
+                    )}
+                  </p>
+                </div>
               </div>
-            </div>
-          </header>
+            </header>
 
-          <h2>Аналитика по шагам</h2>
-          <p className={styles.panel__description}>
-            Запусков: {report.data.analytics.started} · Завершений: {report.data.analytics.completed} ·
-            Закрытий: {report.data.analytics.dismissed}
-          </p>
+            <h2>Аналитика</h2>
+            <p className={styles.panel__description}>
+              Статистика по шагам сценария. Посмотрите, на каких шагах пользователи чаще всего останавливаются.
+            </p>
 
-          {report.data.analytics.steps.length === 0 ? (
-            <p>В опубликованной версии нет шагов.</p>
-          ) : (
-            <div className={styles.panel__steps}>
-              {report.data.analytics.steps.map((step) => (
-                <article className={styles.panel__steps__stepRow} key={step.hint_id}>
-                  <div className={styles.panel__steps__stepInfo}>
-                    <span className={styles.panel__steps__stepNumber}>Шаг {step.step}</span>
-                  </div>
-                  <div className={styles.panel__steps__stat}><span>Показано</span><strong>{step.shown}</strong></div>
-                  <div className={styles.panel__steps__stat}><span>Завершено</span><strong>{step.completed}</strong></div>
-                  <div className={styles.panel__steps__stat}><span>Автопропуски</span><strong>{step.skipped ?? "—"}</strong></div>
-                  <div className={styles.panel__steps__stat}><span>Показано без завершения</span><strong>{step.drop_off}</strong></div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+            {analytics.steps.length === 0 ? (
+              <p>В опубликованной версии нет шагов.</p>
+            ) : (
+              <div className={styles.panel__steps}>
+                {analytics.steps.map((step) => (
+                  <article className={styles.panel__steps__stepRow} key={step.hint_id}>
+                    <div className={styles.panel__steps__stepInfo}>
+                      <span className={styles.panel__steps__stepNumber}>{step.step}</span>
+                      <h3>{step.title || `Шаг ${step.step}`}</h3>
+                    </div>
+                    <div className={styles.panel__steps__stat}><span>Показано</span><strong>{step.shown}</strong></div>
+                    <StepMetric label="Завершено" count={step.completed} total={step.shown} positive />
+                    <StepMetric label="Пропущено" count={step.not_completed ?? step.drop_off} total={step.completed + (step.not_completed ?? step.drop_off)} />
+                    <StepMetric label="Проблемные селекторы" count={step.skipped ?? 0} total={analytics.started} />
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+          <section className={styles.panel}>
+            <h2>Проблемные селекторы <span className={styles.panel__issueCount}>{skippedSteps.length}</span></h2>
+            <p className={styles.panel__description}>Шаги, автоматически пропущенные из-за недоступных элементов.</p>
+            {skippedSteps.length === 0 ? <p>Автопропусков пока нет.</p> : (
+              <div className={styles.panel__issues}>
+                {skippedSteps.map((step) => (
+                  <article className={styles.panel__issues__issueRow} key={step.hint_id}>
+                    <span className={styles.panel__issues__issueIcon} aria-hidden="true"><CircleAlert size={27} /></span>
+                    <div className={styles.panel__issues__issueInfo}>
+                      <h3>Шаг {step.step}{step.title && ` — ${step.title}`}</h3>
+                      <p>Целевой элемент был недоступен</p>
+                    </div>
+                    <div className={styles.panel__issueStat}>
+                      <span>Количество ошибок</span>
+                      <strong>{step.skipped} <small className={styles.panel__issueStat__bad}>{percent(step.skipped, analytics.started)}</small></strong>
+                    </div>
+                    <div className={styles.panel__issueStat}>
+                      <span>Последнее вхождение</span>
+                      <strong>{step.last_skipped_at ? dateTime.format(new Date(step.last_skipped_at)) : "—"}</strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </>
       )}
     </main>
   );

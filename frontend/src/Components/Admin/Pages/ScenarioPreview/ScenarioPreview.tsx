@@ -37,6 +37,19 @@ export function ScenarioPreview() {
     retry: false,
   });
 
+  const appThemeQuery = useQuery({
+    queryKey: ["tour-app-theme", tourId],
+    enabled: Boolean(tourId) && query.isSuccess,
+    queryFn: async () => {
+      const apps = await onboardingAPI.getApps();
+      for (const app of apps) {
+        const tours = await onboardingAPI.getTours(app.id);
+        if (tours?.some((tour) => tour.id === tourId)) return app.theme ?? null;
+      }
+      return null;
+    },
+  });
+
   const hints = useMemo(() => [...(query.data?.tour.hints ?? [])].sort((a, b) => a.step - b.step),[query.data?.tour.hints]);
   const currentIndex = Math.min(stepIndex, Math.max(0, hints.length - 1));
   const currentHint = hints[currentIndex];
@@ -48,7 +61,7 @@ export function ScenarioPreview() {
         setIsFinished(true);
         return;
     }
-    setStepIndex((prev) => prev + 1);
+    setStepIndex(currentIndex + 1);
   };
 
   const handleSkip = () => { setIsFinished(true); };
@@ -126,7 +139,8 @@ export function ScenarioPreview() {
 
       {pageHtml !== null && currentHint && !isFinished && (
         <Hint key={currentHint.id} hint={currentHint} index={currentIndex} total={hints.length} onNext={handleNext}
-              onClose={handleSkip} busy={false} preview
+              onMissingTarget={handleNext}
+              onClose={handleSkip} busy={false} preview theme={appThemeQuery.data ?? undefined}
         />
       )}
     </main>

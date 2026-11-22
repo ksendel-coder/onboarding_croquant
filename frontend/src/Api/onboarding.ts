@@ -1,8 +1,10 @@
 import { api } from "./api";
-import type { App, CreateHintRequest, CreateTourRequest, Hint, HintPatchRequest, TourAnalytics, TourListItem, TourPreviewResponse, TourVersionHistoryItem, UpdateTourMetaRequest } from "../Types";
+import type { App, AppThemePatch, CreateHintRequest, CreateTourRequest, Hint, HintPatchRequest, TourAnalytics, TourListItem, TourPreviewResponse, TourVersionHistoryItem, UpdateTourMetaRequest } from "../Types";
 
 export const onboardingAPI = {
   getApps: () => api.get<App[]>("/apps").then((res) => res.data),
+  updateAppTheme: (appId: string, theme: AppThemePatch) =>
+    api.patch<App>(`/apps/${appId}`, { theme }).then((res) => res.data),
 
   createApp: (
     data: {

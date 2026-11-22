@@ -1,0 +1,81 @@
+.settings {
+  margin-top: 32px;
+  padding: 24px;
+  color: #202c46;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 3px 18px #142a4612;
+
+  summary { cursor: pointer; font-size: 22px; font-weight: 700; }
+  h2 { font-size: 21px; margin: 0 0 20px; }
+  > p { margin: 16px 0 24px; }
+}
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.panel {
+  min-width: 0;
+  padding: 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 3px 18px #142a4612;
+}
+.field { display: grid; gap: 6px; margin: 0 0 18px; }
+.field label { font-weight: 650; }
+.field small { color: #64748b; }
+.controls { display: flex; align-items: center; gap: 12px; margin-top: 5px; }
+.controls input[type="color"] {
+  width: 52px;
+  height: 44px;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #c6cfe0;
+  cursor: pointer;
+}
+.controls input[type="text"] {
+  box-sizing: border-box;
+  width: 135px;
+  padding: 11px;
+  font: 15px monospace;
+  border-radius: 8px;
+  border: 1px solid #c6cfe0;
+}
+.controls input[aria-invalid="true"] { border-color: #dc2626; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.actions button {
+  padding: 10px 15px;
+  border: 1px solid #696cf1;
+  border-radius: 9px;
+  background: #fff;
+  color: #3437a7;
+  cursor: pointer;
+}
+.actions button:last-child { background: #5054c9; color: #fff; }
+.actions button:disabled { opacity: .55; cursor: not-allowed; }
+.note { margin-top: 16px; font-size: 13px; color: #64748b; line-height: 1.5; }
+.error { color: #b91c1c !important; }
+.success { color: #047857; }
+.previewStage {
+  display: grid;
+  justify-items: start;
+}
+.hint {
+  box-sizing: border-box;
+  width: min(100%, 358px);
+  padding: 24px;
+  border: 3px solid;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px #17233b24;
+}
+.hintHeader { display: flex; justify-content: space-between; gap: 12px; }
+.hint p { margin: 16px 0; color: inherit; }
+.hint button {
+  display: block;
+  margin-left: auto;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 8px;
+  cursor: default;
+}
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  .settings { padding: 16px; }
+}

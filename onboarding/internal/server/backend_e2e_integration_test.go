@@ -323,6 +323,8 @@ func TestMVP12BackendE2ELifecycle(t *testing.T) {
 	require.EqualValues(t, 1, firstStep["shown"])
 	require.EqualValues(t, 1, firstStep["completed"])
 	require.EqualValues(t, 1, firstStep["skipped"])
+	require.EqualValues(t, 1, firstStep["not_completed"])
+	require.NotEmpty(t, stringField(firstStep, "last_skipped_at"))
 
 	repeat := request(http.MethodPost, resolvePath, resolveBody, "", key, origin)
 	expect(repeat, http.StatusOK)

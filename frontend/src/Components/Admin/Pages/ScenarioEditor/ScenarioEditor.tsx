@@ -1,12 +1,15 @@
 import { memo } from "react";
+import { useIsMutating } from "@tanstack/react-query";
 import { Button } from "../../../UI/Button";
 import { useScenarioEditor } from "../../../../Hooks/useScenarioEditor";
 import { ScenarioSettings } from "./ScenarioSettings";
 import { ScenarioSteps } from "./ScenarioSteps";
+import { ThemeSettings } from "../ThemeSettings/ThemeSettings";
 import styles from "./ScenarioEditor.module.scss";
 
 function ScenarioEditorComponent() {
   const editor = useScenarioEditor();
+  const savingTheme = useIsMutating({ mutationKey: ["save-app-theme"] }) > 0;
   const { isNew, tourQuery, hintsQuery, navigate, busy, saveScenario, saveError, submitScenario, publishScenario, 
           submitPublish } = editor;
 
@@ -24,10 +27,10 @@ function ScenarioEditorComponent() {
           <Button size="back" color="back" onClick={() => navigate("/admin/scenarios")}>
             Отмена
           </Button>
-          <Button size="grey" color="grey" disabled={busy} onClick={submitScenario}>
+          <Button size="grey" color="grey" disabled={busy || savingTheme} onClick={submitScenario}>
             {saveScenario.isPending ? "Сохранение..." : "Сохранить черновик"}
           </Button>
-          <Button size="pink" color="pink" disabled={busy} onClick={submitPublish}>
+          <Button size="pink" color="pink" disabled={busy || savingTheme} onClick={submitPublish}>
             {publishScenario.isPending ? "Публикация..." : "Опубликовать"}
           </Button>
         </div>
@@ -38,6 +41,7 @@ function ScenarioEditorComponent() {
         <ScenarioSettings editor={editor} />
         <ScenarioSteps editor={editor} />
       </section>
+      <ThemeSettings key={editor.tourId ?? "new"} appId={tourQuery.data?.app_id} disabled={busy} />
     </main>
   );
 }
