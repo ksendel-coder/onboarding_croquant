@@ -7,6 +7,7 @@ export interface TourVersionHistoryItem {
 export interface StepAnalytics {
   hint_id: string;
   step: number;
+  title?: string;
   shown: number;
   completed: number;
   skipped: number;

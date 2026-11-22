@@ -313,6 +313,7 @@ func (r *EventRepository) Analytics(
 		SELECT
 			h.id,
 			h.step,
+			h.title,
 			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_shown') AS shown,
 			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_completed') AS completed,
 			COUNT(DISTINCT e.attempt_id) FILTER (WHERE e.event_type='hint_skipped') AS skipped
@@ -320,7 +321,7 @@ func (r *EventRepository) Analytics(
 		LEFT JOIN tour_events e
 			ON e.hint_id=h.id AND e.tour_version_id=h.tour_version_id
 		WHERE h.tour_version_id=$1
-		GROUP BY h.id,h.step
+		GROUP BY h.id,h.step,h.title
 		ORDER BY h.step`,
 		versionId,
 	)
@@ -331,7 +332,7 @@ func (r *EventRepository) Analytics(
 
 	for rows.Next() {
 		var step domains.StepAnalytics
-		if err := rows.Scan(&step.HintId, &step.Step, &step.Shown, &step.Completed, &step.Skipped); err != nil {
+		if err := rows.Scan(&step.HintId, &step.Step, &step.Title, &step.Shown, &step.Completed, &step.Skipped); err != nil {
 			return nil, err
 		}
 		step.DropOff = step.Shown - step.Completed

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { publishedTourAnalyticsQuery } from "../../../../Hooks/publishedTourAnalyticsQuery";
 import { useToursQuery } from "../../../../Hooks/useToursQuery";
@@ -16,7 +16,10 @@ export function AnalyticsDetail() {
 
   return (
     <main className={styles.page}>
-      <Link to="/admin/analytics">Вернуться к аналитике</Link>
+      <Link className={styles.page__back} to="/admin/analytics">
+        <ArrowLeft size={18} aria-hidden="true" />
+        Вернуться к аналитике
+      </Link>
 
       {tours.isPending || (tour && report.isPending) ? (
         <p role="status">Загрузка аналитики…</p>
@@ -52,6 +55,7 @@ export function AnalyticsDetail() {
                 <article className={styles.panel__steps__stepRow} key={step.hint_id}>
                   <div className={styles.panel__steps__stepInfo}>
                     <span className={styles.panel__steps__stepNumber}>Шаг {step.step}</span>
+                    {step.title && <h3>{step.title}</h3>}
                   </div>
                   <div className={styles.panel__steps__stat}><span>Показано</span><strong>{step.shown}</strong></div>
                   <div className={styles.panel__steps__stat}><span>Завершено</span><strong>{step.completed}</strong></div>

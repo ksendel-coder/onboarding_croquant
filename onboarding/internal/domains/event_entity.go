@@ -31,6 +31,7 @@ type TourEvent struct {
 type StepAnalytics struct {
 	HintId    uuid.UUID `json:"hint_id"`
 	Step      int       `json:"step"`
+	Title     string    `json:"title"`
 	Shown     int       `json:"shown"`
 	Completed int       `json:"completed"`
 	Skipped   int       `json:"skipped"`

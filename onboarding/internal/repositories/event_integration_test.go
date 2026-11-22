@@ -244,10 +244,10 @@ func TestEventRepositoryLifecycleIntegration(t *testing.T) {
 	assert.Equal(t, 50.0, analytics.CompletionRate)
 	require.Len(t, analytics.Steps, 2)
 	assert.Equal(t, domains.StepAnalytics{
-		HintId: firstHintId, Step: 1, Shown: 2, Completed: 1, DropOff: 1,
+		HintId: firstHintId, Step: 1, Title: "First", Shown: 2, Completed: 1, DropOff: 1,
 	}, analytics.Steps[0])
 	assert.Equal(t, domains.StepAnalytics{
-		HintId: secondHintId, Step: 2, Shown: 1, Completed: 1, DropOff: 0,
+		HintId: secondHintId, Step: 2, Title: "Second", Shown: 1, Completed: 1, DropOff: 0,
 	}, analytics.Steps[1])
 
 	invalidHintEvent := newEvent(subjectTwo, uuid.New(), domains.EventHintShown, &foreignHintId)

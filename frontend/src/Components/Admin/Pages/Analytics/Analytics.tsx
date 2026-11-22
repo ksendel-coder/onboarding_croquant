@@ -1,10 +1,11 @@
 import { useQueries } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { publishedTourAnalyticsQuery } from "../../../../Hooks/publishedTourAnalyticsQuery";
 import { useToursQuery } from "../../../../Hooks/useToursQuery";
 import styles from "./Analytics.module.scss";
 
 export function Analytics() {
+  const navigate = useNavigate();
   const tours = useToursQuery();
   const scenarios = tours.data ?? [];
   const reports = useQueries({
@@ -27,10 +28,19 @@ export function Analytics() {
   const dismissed = rows.reduce((total, row) => total + row.analytics.dismissed, 0);
   const completionRate = started > 0 ? (100 * completed) / started : 0;
   const metrics = [
-    { label: "ВСЕГО ЗАПУСКОВ", value: started.toLocaleString("ru-RU") },
-    { label: "ЗАВЕРШИЛИ ТУР", value: completed.toLocaleString("ru-RU") },
-    { label: "ПРОПУСТИЛИ ТУР", value: dismissed.toLocaleString("ru-RU") },
-    { label: "COMPLETION RATE", value: `${completionRate.toFixed(1)}%` },
+    { label: "ВСЕГО ЗАПУСКОВ", value: started.toLocaleString("ru-RU"), note: `Версий в сводке — ${rows.length.toLocaleString("ru-RU")}` },
+    { label: "ЗАВЕРШИЛИ ТУР", value: completed.toLocaleString("ru-RU"), note: "Дошли до конца и выполнили хотя бы один шаг" },
+    {
+      label: "ПРОПУСТИЛИ ТУР",
+      value: dismissed.toLocaleString("ru-RU"),
+      note: started > 0 ? `${((dismissed * 100) / started).toFixed(1)}% от всех запусков` : "Пока нет запусков",
+    },
+    {
+      label: "COMPLETION RATE",
+      value: `${completionRate.toFixed(1)}%`,
+      note: started > 0 ? `${completed.toLocaleString("ru-RU")} из ${started.toLocaleString("ru-RU")} запусков` : "Пока нет запусков",
+      emphasis: completionRate > 0,
+    },
   ];
 
   return (
@@ -51,7 +61,8 @@ export function Analytics() {
               {metrics.map((metric) => (
                 <article className={styles.page__metrics__metricCard} key={metric.label}>
                   <span className={styles.page__metrics__metricCard__metricLabel}>{metric.label}</span>
-                  <strong>{metric.value}</strong>
+                  <strong className={metric.emphasis ? styles.page__metrics__success : undefined}>{metric.value}</strong>
+                  <small className={styles.page__metrics__metricCard__metricNote}>{metric.note}</small>
                 </article>
               ))}
             </section>
@@ -73,10 +84,13 @@ export function Analytics() {
               <tbody>
                 {entries.map(({ tour, report }) => {
                   if (!report.data && !report.isError) return null;
+                  const detailsPath = `/admin/analytics/${tour.id}`;
 
                   return (
-                    <tr key={tour.id}>
-                      <td><Link to={`/admin/analytics/${tour.id}`}>{tour.title}</Link></td>
+                    <tr className={styles.page__table__row} key={tour.id} onClick={(event) => {
+                      if (event.target instanceof Element && !event.target.closest("a")) navigate(detailsPath);
+                    }}>
+                      <td><Link to={detailsPath}>{tour.title}</Link></td>
                       {report.data ? (
                         <>
                           <td>v{report.data.version.version}</td>
