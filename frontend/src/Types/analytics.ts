@@ -13,6 +13,12 @@ export interface StepAnalytics {
   skipped: number;
   drop_off: number;
 }
+export interface AnalyticsPeriod {
+  started: number;
+  completed: number;
+  dismissed: number;
+}
+
 export interface TourAnalytics {
   tour_id: string;
   tour_version_id: string;
@@ -21,4 +27,6 @@ export interface TourAnalytics {
   dismissed: number;
   completion_rate: number; 
   steps: StepAnalytics[];
+  recent?: AnalyticsPeriod;
+  previous?: AnalyticsPeriod;
 }

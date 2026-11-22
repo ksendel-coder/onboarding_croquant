@@ -2,7 +2,30 @@ import { useQueries } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { publishedTourAnalyticsQuery } from "../../../../Hooks/publishedTourAnalyticsQuery";
 import { useToursQuery } from "../../../../Hooks/useToursQuery";
+import type { AnalyticsPeriod, TourAnalytics } from "../../../../Types";
 import styles from "./Analytics.module.scss";
+
+const trendDescription = "Последние 7 дней по сравнению с предыдущими 7 днями";
+const conversionDescription = "Сравнение конверсии за последние 7 дней со средней конверсией за предыдущие 7 дней";
+
+function trend(current: number, previous: number, available: boolean) {
+  if (!available || previous === 0) return { note: "—" };
+  const change = ((current - previous) / previous) * 100;
+  if (change === 0) return { note: "0,0%" };
+  const percent = Math.abs(change).toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return { note: `${change > 0 ? "↑ +" : "↓ −"}${percent}%`, direction: change > 0 ? "up" : "down" };
+}
+
+function sumPeriod(rows: { analytics: TourAnalytics }[], period: "recent" | "previous") {
+  return rows.reduce<AnalyticsPeriod>((total, { analytics }) => {
+    const counts = analytics[period];
+    return counts ? {
+      started: total.started + counts.started,
+      completed: total.completed + counts.completed,
+      dismissed: total.dismissed + counts.dismissed,
+    } : total;
+  }, { started: 0, completed: 0, dismissed: 0 });
+}
 
 export function Analytics() {
   const navigate = useNavigate();
@@ -27,19 +50,25 @@ export function Analytics() {
   const completed = rows.reduce((total, row) => total + row.analytics.completed, 0);
   const dismissed = rows.reduce((total, row) => total + row.analytics.dismissed, 0);
   const completionRate = started > 0 ? (100 * completed) / started : 0;
-  const metrics = [
-    { label: "ВСЕГО ЗАПУСКОВ", value: started.toLocaleString("ru-RU"), note: `Версий в сводке — ${rows.length.toLocaleString("ru-RU")}` },
-    { label: "ЗАВЕРШИЛИ ТУР", value: completed.toLocaleString("ru-RU"), note: "Дошли до конца и выполнили хотя бы один шаг" },
+  const recent = sumPeriod(rows, "recent");
+  const previous = sumPeriod(rows, "previous");
+  const canCompare = !hasMissingReports && rows.every(({ analytics }) => analytics.recent && analytics.previous);
+  const conversionDifference = recent.completed * previous.started - previous.completed * recent.started;
+  const metrics: { label: string; value: string; note: string; direction?: string; emphasis?: boolean }[] = [
+    { label: "ВСЕГО ЗАПУСКОВ", value: started.toLocaleString("ru-RU"), ...trend(recent.started, previous.started, canCompare) },
+    { label: "ЗАВЕРШИЛИ ТУР", value: completed.toLocaleString("ru-RU"), ...trend(recent.completed, previous.completed, canCompare) },
     {
       label: "ПРОПУСТИЛИ ТУР",
       value: dismissed.toLocaleString("ru-RU"),
-      note: started > 0 ? `${((dismissed * 100) / started).toFixed(1)}% от всех запусков` : "Пока нет запусков",
+      ...trend(recent.dismissed, previous.dismissed, canCompare),
     },
     {
       label: "COMPLETION RATE",
       value: `${completionRate.toFixed(1)}%`,
-      note: started > 0 ? `${completed.toLocaleString("ru-RU")} из ${started.toLocaleString("ru-RU")} запусков` : "Пока нет запусков",
-      emphasis: completionRate > 0,
+      note: !canCompare || !recent.started || !previous.started ? "—"
+        : conversionDifference > 0 ? "Выше среднего"
+        : conversionDifference < 0 ? "Ниже среднего" : "На уровне среднего",
+      emphasis: true,
     },
   ];
 
@@ -62,7 +91,7 @@ export function Analytics() {
                 <article className={styles.page__metrics__metricCard} key={metric.label}>
                   <span className={styles.page__metrics__metricCard__metricLabel}>{metric.label}</span>
                   <strong className={metric.emphasis ? styles.page__metrics__success : undefined}>{metric.value}</strong>
-                  <small className={styles.page__metrics__metricCard__metricNote}>{metric.note}</small>
+                  <small className={styles.page__metrics__metricCard__metricNote} title={metric.emphasis ? conversionDescription : trendDescription} data-direction={metric.direction}>{metric.note}</small>
                 </article>
               ))}
             </section>

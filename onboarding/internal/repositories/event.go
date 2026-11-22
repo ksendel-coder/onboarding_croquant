@@ -286,6 +286,7 @@ func (r *EventRepository) Analytics(
 		WITH attempts AS (
 			SELECT
 				BOOL_OR(event_type = 'tour_started') AS started,
+				MIN(received_at) FILTER (WHERE event_type = 'tour_started') AS started_at,
 				BOOL_OR(event_type = 'tour_completed') AS finished,
 				BOOL_OR(event_type = 'hint_completed') AS completed_step,
 				BOOL_OR(event_type = 'tour_dismissed') AS dismissed
@@ -293,15 +294,29 @@ func (r *EventRepository) Analytics(
 			WHERE tour_id=$1 AND tour_version_id=$2
 				AND event_type IN ('tour_started', 'tour_completed', 'hint_completed', 'tour_dismissed')
 			GROUP BY subject_id, attempt_id
+		), periods AS (
+			SELECT *, CASE
+				WHEN started_at >= NOW() - INTERVAL '7 days' THEN 'recent'
+				WHEN started_at >= NOW() - INTERVAL '14 days' THEN 'previous'
+			END AS period
+			FROM attempts
 		)
 		SELECT
 			COUNT(*) FILTER (WHERE started),
 			COUNT(*) FILTER (WHERE started AND finished AND completed_step),
-			COUNT(*) FILTER (WHERE dismissed)
-		FROM attempts`,
+			COUNT(*) FILTER (WHERE dismissed),
+			COUNT(*) FILTER (WHERE period = 'recent'),
+			COUNT(*) FILTER (WHERE period = 'recent' AND finished AND completed_step),
+			COUNT(*) FILTER (WHERE period = 'recent' AND dismissed),
+			COUNT(*) FILTER (WHERE period = 'previous'),
+			COUNT(*) FILTER (WHERE period = 'previous' AND finished AND completed_step),
+			COUNT(*) FILTER (WHERE period = 'previous' AND dismissed)
+		FROM periods`,
 		tourId,
 		versionId,
-	).Scan(&result.Started, &result.Completed, &result.Dismissed)
+	).Scan(&result.Started, &result.Completed, &result.Dismissed,
+		&result.Recent.Started, &result.Recent.Completed, &result.Recent.Dismissed,
+		&result.Previous.Started, &result.Previous.Completed, &result.Previous.Dismissed)
 	if err != nil {
 		return nil, err
 	}

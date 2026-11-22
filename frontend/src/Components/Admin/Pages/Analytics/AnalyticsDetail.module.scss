@@ -136,20 +136,23 @@
 
     &__stepRow {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      grid-template-columns: minmax(180px, 2fr) repeat(4, minmax(0, 1fr));
       align-items: center;
       gap: 14px;
       padding: 20px;
       min-height: 100px;
       background: #f7f9ff;
       border-radius: 13px;
+
+      @media (max-width: 900px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     &__stepInfo {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
+      align-items: center;
+      gap: 16px;
       min-width: 0;
 
       h3 {
@@ -171,11 +174,12 @@
     &__stepNumber {
       display: grid;
       place-items: center;
-      height: 46px;
-      padding: 0 12px;
-      border-radius: 24px;
+      flex: 0 0 42px;
+      height: 42px;
+      border-radius: 50%;
       background: #e9eef9;
-      font-size: 19px;
+      font-size: 18px;
+      white-space: nowrap;
       font-weight: 700;
     }
 
@@ -238,14 +242,16 @@
 
     &__issueRow {
       display: grid;
-      grid-template-columns:
-        62px minmax(200px, 2fr) minmax(160px, 0.9fr)
-        minmax(200px, 1.1fr);
+      grid-template-columns: 54px minmax(0, 2fr) minmax(100px, 1fr);
       gap: 16px;
       align-items: center;
       border: 1px solid #e8ebf1;
       border-radius: 12px;
       padding: 17px 20px;
+
+      @media (max-width: 540px) {
+        grid-template-columns: 54px minmax(0, 1fr);
+      }
     }
 
     &__issueIcon {
@@ -262,6 +268,7 @@
       h3 {
         margin: 0 0 5px;
         font-size: 17px;
+        overflow-wrap: anywhere;
       }
 
       p {

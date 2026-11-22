@@ -38,6 +38,12 @@ type StepAnalytics struct {
 	DropOff   int       `json:"drop_off"`
 }
 
+type AnalyticsPeriod struct {
+	Started   int `json:"started"`
+	Completed int `json:"completed"`
+	Dismissed int `json:"dismissed"`
+}
+
 type TourAnalytics struct {
 	TourId         uuid.UUID       `json:"tour_id"`
 	TourVersionId  uuid.UUID       `json:"tour_version_id"`
@@ -45,6 +51,8 @@ type TourAnalytics struct {
 	Completed      int             `json:"completed"`
 	Dismissed      int             `json:"dismissed"`
 	CompletionRate float64         `json:"completion_rate"`
+	Recent         AnalyticsPeriod `json:"recent"`
+	Previous       AnalyticsPeriod `json:"previous"`
 	Steps          []StepAnalytics `json:"steps"`
 }
 
