@@ -3,12 +3,11 @@ import { ONBOARDING_APP_KEY } from "../../Config/env";
 import type { App } from "../../Types";
 
 export async function getCurrentApp(): Promise<App | null> {
-  const apps = await onboardingAPI.getApps();
-  if (apps.length === 0) return null;
-  
-  if (ONBOARDING_APP_KEY) return ( apps.find((app) => app.public_key === ONBOARDING_APP_KEY) ?? apps[0]);
-  
-  return apps[0];
+  return selectCurrentApp(await onboardingAPI.getApps());
+}
+
+export function selectCurrentApp(apps: App[]): App | null {
+  return apps.find((app) => app.public_key === ONBOARDING_APP_KEY) ?? apps[0] ?? null;
 }
 
 export async function getOrCreateCurrentApp(): Promise<App> {

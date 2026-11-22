@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { onboardingAPI } from "../../../../Api/onboarding";
+import { getOrCreateCurrentApp, selectCurrentApp } from "../../../../Api/helpers/helpers";
 import {
   DEFAULT_APP_THEME,
   HEX_COLOR_PATTERN,
@@ -28,7 +29,7 @@ function readableError(error: unknown): string {
   return "Не удалось сохранить цвета. Попробуйте ещё раз.";
 }
 
-export function ThemeSettings() {
+export function ThemeSettings({ appId, disabled }: { appId?: string; disabled: boolean }) {
   const { user } = useAuth();
   const appsKey = ["apps", user?.id] as const;
   const appsQuery = useQuery({
@@ -36,35 +37,35 @@ export function ThemeSettings() {
     queryFn: onboardingAPI.getApps,
   });
   const apps = appsQuery.data ?? [];
-  const [appId, setAppId] = useState("");
-  const currentApp = apps.find((app) => app.id === appId) ?? apps[0];
+  const currentApp = appId ? apps.find((app) => app.id === appId) : selectCurrentApp(apps);
 
-  if (appsQuery.isPending) return <main className={styles.page}><p role="status">Загрузка приложений…</p></main>;
-  if (appsQuery.isError && !currentApp) return (
-    <main className={styles.page}>
-      <p role="alert">Не удалось загрузить приложения.</p>
-      <button type="button" onClick={() => void appsQuery.refetch()}>Повторить</button>
-    </main>
+  return (
+    <details className={styles.settings}>
+      <summary>Цвета подсказок</summary>
+      {appsQuery.isPending ? (
+        <p role="status">Загрузка палитры…</p>
+      ) : appsQuery.isError && !appsQuery.data ? (
+        <div>
+          <p role="alert">Не удалось загрузить палитру.</p>
+          <button type="button" onClick={() => void appsQuery.refetch()}>Повторить</button>
+        </div>
+      ) : appId && !currentApp ? (
+        <p role="alert">Приложение сценария недоступно.</p>
+      ) : (
+        <ThemeEditor app={currentApp ?? null} appsKey={appsKey} disabled={disabled} />
+      )}
+    </details>
   );
-  if (!currentApp) return (
-    <main className={styles.page}>
-      <h1>Цвета подсказок</h1>
-      <p>Сначала создайте приложение в административной панели.</p>
-    </main>
-  );
-
-  return <ThemeEditor key={currentApp.id} app={currentApp} apps={apps} appsKey={appsKey} onSelect={setAppId} />;
 }
 
-function ThemeEditor({ app, apps, appsKey, onSelect }: {
-  app: App;
-  apps: App[];
+function ThemeEditor({ app, appsKey, disabled }: {
+  app: App | null;
   appsKey: readonly ["apps", string | undefined];
-  onSelect: (id: string) => void;
+  disabled: boolean;
 }) {
   const queryClient = useQueryClient();
   const [edits, setEdits] = useState<AppTheme | null>(null);
-  const persisted = app.theme ?? DEFAULT_APP_THEME;
+  const persisted = app?.theme ?? DEFAULT_APP_THEME;
   const draft = edits ?? persisted;
 
   const isValid = FIELDS.every(({ key }) => HEX_COLOR_PATTERN.test(draft[key]));
@@ -74,9 +75,11 @@ function ThemeEditor({ app, apps, appsKey, onSelect }: {
   const previewColor = (key: keyof AppTheme) => HEX_COLOR_PATTERN.test(draft[key]) ? draft[key] : persisted[key];
 
   const saveMutation = useMutation({
-    mutationFn: () => {
+    mutationKey: ["save-app-theme"],
+    mutationFn: async () => {
       if (!isValid) throw new Error("Некорректные данные формы");
-      return onboardingAPI.updateAppTheme(app.id, {
+      const target = app ?? await getOrCreateCurrentApp();
+      return onboardingAPI.updateAppTheme(target.id, {
         primary_color: draft.primary_color.toUpperCase(),
         background_color: draft.background_color.toUpperCase(),
         text_color: draft.text_color.toUpperCase(),
@@ -86,11 +89,14 @@ function ThemeEditor({ app, apps, appsKey, onSelect }: {
       await queryClient.cancelQueries({ queryKey: appsKey, exact: true });
       queryClient.setQueryData<App[]>(
         appsKey,
-        (old) => old?.map((app) => app.id === updated.id ? updated : app),
+        (old = []) => old.some((app) => app.id === updated.id)
+          ? old.map((app) => app.id === updated.id ? updated : app)
+          : [...old, updated],
       );
       setEdits(null);
     },
   });
+  const busy = disabled || saveMutation.isPending;
 
   function updateColor(key: keyof AppTheme, value: string) {
     setEdits((old) => ({ ...(old ?? persisted), [key]: value }));
@@ -98,19 +104,8 @@ function ThemeEditor({ app, apps, appsKey, onSelect }: {
   }
 
   return (
-    <main className={styles.page}>
-      <h1>Цвета подсказок</h1>
-      <p>Палитра применяется ко всем опубликованным сценариям выбранного приложения.</p>
-
-      <label className={styles.appLabel} htmlFor="theme-app">Приложение</label>
-      <select
-        id="theme-app"
-        value={app.id}
-        disabled={saveMutation.isPending}
-        onChange={(event) => onSelect(event.target.value)}
-      >
-        {apps.map((app) => <option key={app.id} value={app.id}>{app.name}</option>)}
-      </select>
+    <>
+      <p>{app ? `Палитра общая для всех сценариев приложения «${app.name}».` : "Палитра будет общей для всех сценариев нового приложения."}</p>
 
       <section className={styles.layout}>
         <div className={styles.panel}>
@@ -125,7 +120,7 @@ function ThemeEditor({ app, apps, appsKey, onSelect }: {
                   aria-label={`Выбрать: ${title}`}
                   value={previewColor(key)}
                   onInput={(event) => updateColor(key, event.currentTarget.value.toUpperCase())}
-                  disabled={saveMutation.isPending}
+                  disabled={busy}
                 />
                 <input
                   id={`theme-${key}`}
@@ -136,7 +131,7 @@ function ThemeEditor({ app, apps, appsKey, onSelect }: {
                   spellCheck={false}
                   aria-invalid={!HEX_COLOR_PATTERN.test(draft[key])}
                   onChange={(event) => updateColor(key, event.target.value)}
-                  disabled={saveMutation.isPending}
+                  disabled={busy}
                 />
               </div>
               {!HEX_COLOR_PATTERN.test(draft[key]) && (
@@ -146,11 +141,11 @@ function ThemeEditor({ app, apps, appsKey, onSelect }: {
           ))}
 
           <div className={styles.actions}>
-            <button type="button" disabled={saveMutation.isPending}
+            <button type="button" disabled={busy}
               onClick={() => { setEdits(DEFAULT_APP_THEME); saveMutation.reset(); }}>
               Сбросить к стандартным
             </button>
-            <button type="button" disabled={saveMutation.isPending || !isValid || !changed}
+            <button type="button" disabled={busy || !isValid || !changed}
               onClick={() => saveMutation.mutate()}>
               {saveMutation.isPending ? "Сохранение..." : "Сохранить цвета"}
             </button>
@@ -182,6 +177,6 @@ function ThemeEditor({ app, apps, appsKey, onSelect }: {
           </div>
         </div>
       </section>
-    </main>
+    </>
   );
 }

@@ -16,11 +16,6 @@ function AdminTabsComponent() {
           <Button size="nav" color={isActive ? "primary" : "transparent"}>Аналитика</Button>
         )}
       </NavLink>
-      <NavLink to="/admin/theme">
-        {({ isActive }) => (
-          <Button size="nav" color={isActive ? "primary" : "transparent"}>Цвета подсказок</Button>
-        )}
-      </NavLink>
     </nav>
   );
 }
