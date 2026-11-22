@@ -9,6 +9,7 @@ import {
   type AppTheme,
 } from "../../../../Types";
 import { getButtonTextColor } from "../../../../Utils/themeColor";
+import { useAuth } from "../../../Auth/AuthContext";
 import styles from "./ThemeSettings.module.scss";
 
 const FIELDS: { key: keyof AppTheme; title: string; subtitle: string }[] = [
@@ -28,8 +29,10 @@ function readableError(error: unknown): string {
 }
 
 export function ThemeSettings() {
+  const { user } = useAuth();
+  const appsKey = ["apps", user?.id] as const;
   const appsQuery = useQuery({
-    queryKey: ["apps"],
+    queryKey: appsKey,
     queryFn: onboardingAPI.getApps,
   });
   const apps = appsQuery.data ?? [];
@@ -50,10 +53,15 @@ export function ThemeSettings() {
     </main>
   );
 
-  return <ThemeEditor key={currentApp.id} app={currentApp} apps={apps} onSelect={setAppId} />;
+  return <ThemeEditor key={currentApp.id} app={currentApp} apps={apps} appsKey={appsKey} onSelect={setAppId} />;
 }
 
-function ThemeEditor({ app, apps, onSelect }: { app: App; apps: App[]; onSelect: (id: string) => void }) {
+function ThemeEditor({ app, apps, appsKey, onSelect }: {
+  app: App;
+  apps: App[];
+  appsKey: readonly ["apps", string | undefined];
+  onSelect: (id: string) => void;
+}) {
   const queryClient = useQueryClient();
   const [edits, setEdits] = useState<AppTheme | null>(null);
   const persisted = app.theme ?? DEFAULT_APP_THEME;
@@ -75,9 +83,9 @@ function ThemeEditor({ app, apps, onSelect }: { app: App; apps: App[]; onSelect:
       });
     },
     onSuccess: async (updated) => {
-      await queryClient.cancelQueries({ queryKey: ["apps"], exact: true });
+      await queryClient.cancelQueries({ queryKey: appsKey, exact: true });
       queryClient.setQueryData<App[]>(
-        ["apps"],
+        appsKey,
         (old) => old?.map((app) => app.id === updated.id ? updated : app),
       );
       setEdits(null);
@@ -116,7 +124,7 @@ function ThemeEditor({ app, apps, onSelect }: { app: App; apps: App[]; onSelect:
                   type="color"
                   aria-label={`Выбрать: ${title}`}
                   value={previewColor(key)}
-                  onChange={(event) => updateColor(key, event.target.value.toUpperCase())}
+                  onInput={(event) => updateColor(key, event.currentTarget.value.toUpperCase())}
                   disabled={saveMutation.isPending}
                 />
                 <input

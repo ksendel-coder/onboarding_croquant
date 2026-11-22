@@ -11,7 +11,8 @@ export function WidgetTestLayout() {
 
     let active = true;
     let destroy: (() => void) | undefined;
-    const scriptUrl = `${import.meta.env.BASE_URL}onboarding-widget.js`;
+    // Use an absolute URL so Vite serves the public module without an import query.
+    const scriptUrl = new URL(`${import.meta.env.BASE_URL}onboarding-widget.js`, document.baseURI).href;
     void import(/* @vite-ignore */ scriptUrl)
       .then(({ mountOnboardingWidget }) => {
         if (active) destroy = mountOnboardingWidget({ appKey: ONBOARDING_APP_KEY, apiUrl: API_URL });

@@ -44,7 +44,7 @@ export function ScenarioPreview() {
       const apps = await onboardingAPI.getApps();
       for (const app of apps) {
         const tours = await onboardingAPI.getTours(app.id);
-        if (tours.some((tour) => tour.id === tourId)) return app.theme ?? null;
+        if (tours?.some((tour) => tour.id === tourId)) return app.theme ?? null;
       }
       return null;
     },
